@@ -1,0 +1,21 @@
+# Bağımlılıklar
+node_modules/
+
+# Ortam değişkenleri (örnek dosyalar hariç)
+.env
+.env.local
+.env.*.local
+!.env.example
+
+# Build çıktıları
+client/dist/
+dist/
+
+# Notlara yüklenen dosyalar
+server/uploads/
+
+# Editör / OS dosyaları
+.DS_Store
+*.log
+.idea/
+.vscode/
