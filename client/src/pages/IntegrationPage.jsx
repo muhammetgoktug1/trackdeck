@@ -13,6 +13,7 @@ import {
   ChevronDown,
 } from 'lucide-react';
 import { renderTemplate } from '../lib/format.js';
+import PageContainer from '../components/PageContainer.jsx';
 
 const THRESHOLD_OPTIONS = [60, 45, 30, 15, 7, 3, 1];
 
@@ -74,6 +75,23 @@ const TEMPLATE_FIELDS = {
       vars: ['name', 'expiresAt', 'time'],
     },
   ],
+  github: [
+    {
+      key: 'githubCi',
+      title: 'CI Kırıldı (🔴)',
+      vars: ['repo', 'workflow', 'runNumber', 'branch', 'title', 'url', 'time'],
+    },
+    {
+      key: 'githubRelease',
+      title: 'Yeni Release (🏷️)',
+      vars: ['repo', 'tag', 'url', 'time'],
+    },
+    {
+      key: 'githubIssue',
+      title: 'Yeni Issue (🐛)',
+      vars: ['repo', 'number', 'title', 'url', 'time'],
+    },
+  ],
 };
 
 // Önizlemede kullanılan örnek değerler
@@ -85,6 +103,13 @@ const PREVIEW_VARS = {
   responseTime: '742',
   days: '30',
   expiresAt: '15 Mar 2027',
+  repo: 'muhammet/kisisel-takip',
+  workflow: 'ci',
+  runNumber: '128',
+  branch: 'main',
+  title: 'Login sayfası 500 hatası',
+  tag: 'v1.2.0',
+  number: '42',
 };
 
 const inputClass =
@@ -218,12 +243,19 @@ export default function IntegrationPage({
         enabled: config.enabled ?? false,
         notifyUptime: config.notifyUptime ?? true,
         notifyDomains: config.notifyDomains ?? true,
+        notifyGithub: config.notifyGithub ?? false,
+        notifyGithubCi: config.notifyGithubCi ?? true,
+        notifyGithubRelease: config.notifyGithubRelease ?? true,
+        notifyGithubIssue: config.notifyGithubIssue ?? false,
         domainThresholds: config.domainThresholds ?? [45, 30, 15],
         templates: {
           uptimeDown: config.templates?.uptimeDown ?? '',
           uptimeUp: config.templates?.uptimeUp ?? '',
           domainExpiry: config.templates?.domainExpiry ?? '',
           domainExpired: config.templates?.domainExpired ?? '',
+          githubCi: config.templates?.githubCi ?? '',
+          githubRelease: config.templates?.githubRelease ?? '',
+          githubIssue: config.templates?.githubIssue ?? '',
         },
       });
     }
@@ -263,11 +295,11 @@ export default function IntegrationPage({
 
   if (loading || !form) {
     return (
-      <div className="flex max-w-3xl flex-col gap-5">
+      <PageContainer>
         {tabBar}
         <div className="h-40 animate-pulse rounded-2xl bg-zinc-900/50" />
         <div className="h-56 animate-pulse rounded-2xl bg-zinc-900/50" />
-      </div>
+      </PageContainer>
     );
   }
 
@@ -291,7 +323,7 @@ export default function IntegrationPage({
   const thresholds = form.domainThresholds;
 
   return (
-    <div className="flex max-w-3xl flex-col gap-5">
+    <PageContainer>
       {tabBar}
 
       {/* Bağlantı kartı */}
@@ -522,6 +554,49 @@ export default function IntegrationPage({
               ))}
             </div>
           </NotificationBlock>
+
+          <NotificationBlock
+            title="GitHub bildirimleri"
+            description="İzlenen repolarda CI kırılınca, yeni release/issue açılınca mesaj gönderilir"
+            checked={form.notifyGithub}
+            onChange={(v) => set('notifyGithub', v)}
+          >
+            <div className="flex flex-col gap-2.5">
+              {[
+                { key: 'notifyGithubCi', label: 'CI kırılmaları', desc: 'workflow çalışması başarısız olunca' },
+                { key: 'notifyGithubRelease', label: 'Yeni release', desc: 'versiyon yayınlanınca' },
+                { key: 'notifyGithubIssue', label: 'Yeni issue', desc: 'issue açılınca (gürültülü olabilir)' },
+              ].map(({ key, label, desc }) => (
+                <div
+                  key={key}
+                  className="flex items-center justify-between gap-3 rounded-xl bg-zinc-800/30 px-3.5 py-2.5"
+                >
+                  <span className="text-[13px] font-medium text-zinc-300">
+                    {label}
+                    <span className="ml-2 text-xs font-normal text-zinc-600">{desc}</span>
+                  </span>
+                  <Switch checked={form[key]} onChange={(v) => set(key, v)} />
+                </div>
+              ))}
+            </div>
+
+            <div className="mt-4 flex flex-col gap-4">
+              {TEMPLATE_FIELDS.github.map((f) => (
+                <TemplateField
+                  key={f.key}
+                  field={f}
+                  value={form.templates[f.key] ?? ''}
+                  defaultValue={defaults[f.key]}
+                  onChange={(v) => setTemplate(f.key, v)}
+                  previewTime={previewTime}
+                />
+              ))}
+            </div>
+            <p className="mt-3 text-[11px] leading-relaxed text-zinc-600">
+              Tarayıcı 5 dakikada bir çalışır; repolar GitHub sayfasından eklenir.
+              İlk tarama yalnızca referans alır, bildirim göndermez.
+            </p>
+          </NotificationBlock>
         </div>
       </div>
 
@@ -542,6 +617,6 @@ export default function IntegrationPage({
         <Plug className="h-3.5 w-3.5" />
         Ayarlar veritabanında saklanır (.env gerekmez) · test gerçek mesaj gönderir
       </p>
-    </div>
+    </PageContainer>
   );
 }

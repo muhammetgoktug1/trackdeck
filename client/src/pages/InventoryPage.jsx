@@ -1,4 +1,5 @@
 import { Globe2, Server } from 'lucide-react';
+import PageContainer from '../components/PageContainer.jsx';
 
 const TABS = [
   { id: 'domains', label: 'Domainler', icon: Globe2 },
@@ -8,7 +9,7 @@ const TABS = [
 // Domainler + Sunucular sekmeli sarmalayıcı; liste bileşenleri children olarak gelir
 export default function InventoryPage({ activeTab, onTabChange, totals = {}, children }) {
   return (
-    <div className="flex flex-col gap-5">
+    <PageContainer>
       <div
         role="tablist"
         aria-label="Envanter sekmeleri"
@@ -47,6 +48,6 @@ export default function InventoryPage({ activeTab, onTabChange, totals = {}, chi
       </div>
 
       {children}
-    </div>
+    </PageContainer>
   );
 }

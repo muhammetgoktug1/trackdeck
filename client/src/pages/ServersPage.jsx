@@ -1,5 +1,6 @@
 import { Pencil, Trash2, Server } from 'lucide-react';
 import Pagination from '../components/Pagination.jsx';
+import PageContainer from '../components/PageContainer.jsx';
 import { formatDateTR } from '../lib/format.js';
 
 export default function ServersPage({
@@ -12,6 +13,7 @@ export default function ServersPage({
   onLimitChange,
 }) {
   return (
+    <PageContainer>
     <div className="overflow-hidden rounded-2xl border border-zinc-800/80 bg-zinc-900/50">
       <div className="flex items-center justify-between px-5 py-4">
         <div className="flex items-center gap-2.5">
@@ -128,5 +130,6 @@ export default function ServersPage({
         </>
       )}
     </div>
+    </PageContainer>
   );
 }

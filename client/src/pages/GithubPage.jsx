@@ -25,6 +25,7 @@ import { formatDateTR, formatInterval, timeAgo } from '../lib/format.js';
 import GithubRepoModal from '../components/GithubRepoModal.jsx';
 import GithubSettingsModal from '../components/GithubSettingsModal.jsx';
 import ConfirmModal from '../components/ConfirmModal.jsx';
+import PageContainer from '../components/PageContainer.jsx';
 
 const TABS = [
   { id: 'overview', label: 'Özet', icon: Activity },
@@ -467,7 +468,7 @@ export default function GithubPage() {
   const TabContent = TAB_COMPONENTS[tab];
 
   return (
-    <div className="flex max-w-4xl flex-col gap-5">
+    <PageContainer>
       {/* Üst araç çubuğu: repolar + ayarlar */}
       <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-zinc-800/80 bg-zinc-900/50 p-2">
         {reposLoading ? (
@@ -641,6 +642,6 @@ export default function GithubPage() {
         onClose={() => setDeleteTarget(null)}
         onConfirm={handleDelete}
       />
-    </div>
+    </PageContainer>
   );
 }

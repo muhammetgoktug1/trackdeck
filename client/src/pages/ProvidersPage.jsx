@@ -1,5 +1,6 @@
 import { Pencil, Trash2, Building2 } from 'lucide-react';
 import Pagination from '../components/Pagination.jsx';
+import PageContainer from '../components/PageContainer.jsx';
 
 export default function ProvidersPage({
   list,
@@ -11,6 +12,7 @@ export default function ProvidersPage({
   onLimitChange,
 }) {
   return (
+    <PageContainer>
     <div className="overflow-hidden rounded-2xl border border-zinc-800/80 bg-zinc-900/50">
       <div className="flex items-center justify-between px-5 py-4">
         <div className="flex items-center gap-2.5">
@@ -118,5 +120,6 @@ export default function ProvidersPage({
         </>
       )}
     </div>
+    </PageContainer>
   );
 }

@@ -18,6 +18,7 @@ export const api = {
 
   listMonitors: (page = 1, limit = 20) =>
     request(`/monitors?page=${page}&limit=${limit}`),
+  getMonitor: (id) => request(`/monitors/${id}`),
   createMonitor: (body) =>
     request('/monitors', { method: 'POST', body: JSON.stringify(body) }),
   updateMonitor: (id, body) =>
@@ -26,6 +27,10 @@ export const api = {
   checkMonitor: (id) => request(`/monitors/${id}/check`, { method: 'POST' }),
   monitorChecks: (id, page = 1, limit = 10) =>
     request(`/monitors/${id}/checks?page=${page}&limit=${limit}`),
+  monitorTimeseries: (id, hours = 24) =>
+    request(`/monitors/${id}/timeseries?hours=${hours}`),
+  monitorIncidents: (id, days = 30) =>
+    request(`/monitors/${id}/incidents?days=${days}`),
 
   listDomains: (page = 1, limit = 20) =>
     request(`/domains?page=${page}&limit=${limit}`),

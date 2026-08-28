@@ -174,6 +174,25 @@ GitHub rate-limit'e dost erişim yapılır.
 - Repo eklerken `kullanici/repo` veya tam GitHub URL'si kabul edilir; repo
   GitHub'dan doğrulanır.
 
+## Uptime Grafikleri
+
+Monitör tablosunda **7 Gün** sütunu (son 7 günün uptime %'si), kontrol
+geçmişi modalında ise 24 saatlik **yanıt süresi grafiği** ve status sayfası
+tarzı **uptime şeridi** görünür. Grafikler bağımlılık olmadan SVG olarak
+çizilir; veri `GET /api/monitors/:id/timeseries?hours=24` ucundan zaman
+kovalarına bölünmüş olarak gelir (24 saate kadar 15 dk, sonrasında 1 saat
+kova).
+
+## GitHub Bildirimleri
+
+Entegrasyonlar sayfasındaki kanallarda (WhatsApp/Slack/Discord) "GitHub
+bildirimleri" bloğu açılarak **CI kırılmaları**, **yeni release'ler** ve
+(yeşilleştirerek) **yeni issue'lar** bildirilebilir. Tarayıcı 5 dakikada bir
+çalışır; "son görülen" run/release/issue işaretleri repoya kalıcı yazılır,
+bu yüzden API yeniden başlasa bile çift bildirim gitmez. İlk tarama yalnızca
+referans alır, bildirim göndermez. Mesaj şablonları diğerleri gibi
+panelden düzenlenebilir (`githubCi`, `githubRelease`, `githubIssue`).
+
 ## Otomatik uptime taraması
 
 

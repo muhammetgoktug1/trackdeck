@@ -14,9 +14,11 @@ import noteRoutes from './routes/notes.js';
 import Note from './models/Note.js';
 import { startDomainAlertScheduler } from './lib/domainAlerts.js';
 import { startMonitorScheduler } from './lib/monitorScheduler.js';
+import { startGithubAlertScheduler } from './lib/githubAlerts.js';
 import Monitor from './models/Monitor.js';
 import Domain from './models/Domain.js';
 import ServerModel from './models/Server.js';
+import CheckLog from './models/CheckLog.js';
 
 const app = express();
 
@@ -35,20 +37,95 @@ app.get('/api/health', (_req, res) => {
   });
 });
 
-// Dashboard özeti: tek çağrıda tüm sayaçlar
+// Dashboard özeti: tek çağrıda sayaçlar + ilgi odaklı veri
+// (down monitörler, yaklaşan domain bitişleri, 7 günlük uptime)
 app.get('/api/overview', async (_req, res) => {
-  const [monitorTotal, monitorUp, domainTotal, serverTotal, noteTotal] = await Promise.all([
+  const since7d = new Date(Date.now() - 7 * 86_400_000);
+  const in30d = new Date(Date.now() + 30 * 86_400_000);
+
+  const [
+    monitorTotal,
+    monitorUp,
+    monitorDown,
+    monitorPaused,
+    domainTotal,
+    serverTotal,
+    noteTotal,
+    downDocs,
+    expiringDocs,
+    agg7d,
+  ] = await Promise.all([
     Monitor.countDocuments({}),
     Monitor.countDocuments({ status: 'up' }),
+    Monitor.countDocuments({ status: 'down' }),
+    Monitor.countDocuments({ status: 'paused' }),
     Domain.countDocuments({}),
     ServerModel.countDocuments({}),
     Note.countDocuments({}),
+    Monitor.find({ status: 'down' }).sort({ lastCheckedAt: 1 }).limit(5),
+    Domain.find({ expiresAt: { $ne: null, $lte: in30d } })
+      .sort({ expiresAt: 1 })
+      .limit(5)
+      .select('name expiresAt'),
+    CheckLog.aggregate([
+      { $match: { checkedAt: { $gte: since7d } } },
+      {
+        $group: {
+          _id: '$monitor',
+          up: { $sum: { $cond: [{ $eq: ['$status', 'up'] }, 1, 0] } },
+          total: { $sum: 1 },
+        },
+      },
+    ]),
   ]);
+
+  // Down süresi: son 'up' ölçümünden bu yana (down az sayıda olduğundan ucuz)
+  const downMonitors = await Promise.all(
+    downDocs.map(async (m) => {
+      const lastUp = await CheckLog.findOne({ monitor: m._id, status: 'up' })
+        .sort({ checkedAt: -1 })
+        .select('checkedAt');
+      const since = lastUp?.checkedAt ?? m.lastCheckedAt ?? new Date();
+      return {
+        id: m.id,
+        name: m.name,
+        url: m.url,
+        status: m.status,
+        lastStatusCode: m.lastStatusCode ?? null,
+        lastCheckedAt: m.lastCheckedAt,
+        downMinutes: Math.max(0, Math.round((Date.now() - since.getTime()) / 60_000)),
+      };
+    })
+  );
+
+  const withChecks = agg7d.filter((r) => r.total > 0);
+  const checks7d = agg7d.reduce(
+    (acc, r) => ({ total: acc.total + r.total, up: acc.up + r.up }),
+    { total: 0, up: 0 }
+  );
+  const uptime7dAvg =
+    withChecks.length === 0
+      ? null
+      : Math.round(
+          (withChecks.reduce((s, r) => s + r.up / r.total, 0) / withChecks.length) * 1000
+        ) / 10;
+
+  const domainsExpiring = expiringDocs.map((d) => ({
+    id: d.id,
+    name: d.name,
+    expiresAt: d.expiresAt,
+    days: Math.ceil((d.expiresAt.getTime() - Date.now()) / 86_400_000),
+  }));
+
   res.json({
-    monitors: { total: monitorTotal, up: monitorUp },
+    monitors: { total: monitorTotal, up: monitorUp, down: monitorDown, paused: monitorPaused },
     domains: domainTotal,
     servers: serverTotal,
     notes: noteTotal,
+    downMonitors,
+    domainsExpiring,
+    checks7d,
+    uptime7dAvg,
   });
 });
 
@@ -89,6 +166,7 @@ async function start() {
     console.log(`[api] http://localhost:${PORT} adresinde çalışıyor`);
     startDomainAlertScheduler();
     startMonitorScheduler();
+    startGithubAlertScheduler();
   });
 }
 

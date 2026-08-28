@@ -31,6 +31,12 @@ const integrationSchema = new mongoose.Schema(
     // Bildirim tercihleri
     notifyUptime: { type: Boolean, default: true },
     notifyDomains: { type: Boolean, default: true },
+    // GitHub bildirimleri (anahtar + tür bazlı tercihler)
+    notifyGithub: { type: Boolean, default: false },
+    notifyGithubCi: { type: Boolean, default: true },
+    notifyGithubRelease: { type: Boolean, default: true },
+    // issue bildirimi varsayılan kapalı (gürültü az olsun)
+    notifyGithubIssue: { type: Boolean, default: false },
     // kaç gün kalınca bildirilsin (örn: [45, 30, 15])
     domainThresholds: { type: [Number], default: () => [45, 30, 15] },
 
@@ -41,6 +47,9 @@ const integrationSchema = new mongoose.Schema(
         uptimeUp: templateField,
         domainExpiry: templateField,
         domainExpired: templateField,
+        githubCi: templateField,
+        githubRelease: templateField,
+        githubIssue: templateField,
       },
       default: () => ({}),
     },

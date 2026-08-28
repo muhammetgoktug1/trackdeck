@@ -3,6 +3,7 @@ import { Plus, RefreshCw } from 'lucide-react';
 import Sidebar from './components/Sidebar.jsx';
 import DashboardPage from './pages/DashboardPage.jsx';
 import MonitorsPage from './pages/MonitorsPage.jsx';
+import MonitorDetailPage from './pages/MonitorDetailPage.jsx';
 import DomainsPage from './pages/DomainsPage.jsx';
 import ServersPage from './pages/ServersPage.jsx';
 import InventoryPage from './pages/InventoryPage.jsx';
@@ -15,7 +16,6 @@ import MonitorModal from './components/MonitorModal.jsx';
 import DomainModal from './components/DomainModal.jsx';
 import ServerModal from './components/ServerModal.jsx';
 import ProviderModal from './components/ProviderModal.jsx';
-import ChecksModal from './components/ChecksModal.jsx';
 import ConfirmModal from './components/ConfirmModal.jsx';
 import Toasts from './components/Toasts.jsx';
 import { api } from './lib/api.js';
@@ -32,6 +32,12 @@ const VIEW_META = {
     subtitle: 'sitelerinin durumunu tek yerden yönet',
     addType: 'monitor',
     addLabel: 'Yeni Monitör',
+  },
+  'monitor-detail': {
+    title: 'Monitör Detayı',
+    subtitle: 'grafikler, kesintiler ve kontrol geçmişi',
+    addType: null,
+    addLabel: '',
   },
   inventory: {
     title: 'Envanter',
@@ -93,17 +99,8 @@ export default function App() {
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [deleting, setDeleting] = useState(false);
 
-  // Kontrol geçmişi modalı
-  const [checksModal, setChecksModal] = useState({
-    open: false,
-    monitor: null,
-    data: [],
-    total: 0,
-    page: 1,
-    totalPages: 1,
-    summary: null,
-    loading: false,
-  });
+  // Monitör detay sayfası (tıklanan monitör nesnesi)
+  const [detailMonitor, setDetailMonitor] = useState(null);
 
   // Entegrasyon ayarları (aktif sekme: whatsapp / slack / discord)
   const [integrationTab, setIntegrationTab] = useState('whatsapp');
@@ -126,10 +123,12 @@ export default function App() {
     }, 3200);
   }, []);
 
-  // Sekmeli sayfalara (envanter) doğru sekmeye atlayarak gidebilmek için
-  const navigate = (nextView, tab) => {
+  // Sekmeli sayfalara (envanter) doğru sekmeye, detay sayfalarına monitörle
+  // atlayabilmek için
+  const navigate = (nextView, tab, monitor) => {
     setView(nextView);
     if (tab) setInventoryTab(tab);
+    if (monitor) setDetailMonitor(monitor);
   };
 
   const LIST_LOADERS = {
@@ -201,8 +200,8 @@ export default function App() {
     setListLoading(true);
     if (view === 'dashboard') {
       loadOverview();
-    } else if (view === 'github') {
-      // GitHub sayfası verisini kendisi yükler
+    } else if (view === 'github' || view === 'monitor-detail') {
+      // bu sayfalar verilerini kendileri yükler
       setListLoading(false);
     } else if (view === 'integrations') {
       loadIntegration(integrationTab);
@@ -218,7 +217,7 @@ export default function App() {
     const timer = setInterval(() => {
       if (view === 'dashboard') {
         loadOverview({ silent: true });
-      } else if (view === 'integrations' || view === 'github') {
+      } else if (view === 'integrations' || view === 'github' || view === 'monitor-detail') {
         return;
       } else {
         const kind = view === 'inventory' ? inventoryTab : view;
@@ -241,8 +240,8 @@ export default function App() {
       loadOverview();
       return;
     }
-    if (view === 'github') {
-      // GitHub sayfası kendi yenileme düğmesine sahip
+    if (view === 'github' || view === 'monitor-detail') {
+      // bu sayfalar kendi yenileme düğmesine sahip
       return;
     }
     if (view === 'integrations') {
@@ -365,37 +364,10 @@ export default function App() {
     setModal({ open: true, type, item });
   };
 
-  const fetchChecks = useCallback(async (monitor, page) => {
-    setChecksModal((prev) => ({ ...prev, loading: true }));
-    try {
-      const res = await api.monitorChecks(monitor.id, page, 10);
-      setChecksModal((prev) => ({
-        ...prev,
-        data: res.data,
-        total: res.total,
-        page: res.page,
-        totalPages: res.totalPages,
-        summary: res.summary,
-        loading: false,
-      }));
-    } catch (err) {
-      setChecksModal((prev) => ({ ...prev, loading: false }));
-      pushToast(err.message, 'error');
-    }
-  }, [pushToast]);
-
-  const openChecks = (monitor) => {
-    setChecksModal({
-      open: true,
-      monitor,
-      data: [],
-      total: 0,
-      page: 1,
-      totalPages: 1,
-      summary: null,
-      loading: true,
-    });
-    fetchChecks(monitor, 1);
+  // Monitör detay sayfasını açar (liste satırından veya geçmiş ikonundan)
+  const openMonitorDetail = (monitor) => {
+    setDetailMonitor(monitor);
+    setView('monitor-detail');
   };
 
   const handleSave = async (form) => {
@@ -470,6 +442,8 @@ export default function App() {
       await actions[deleteTarget.type](deleteTarget.item.id);
       pushToast(`"${deleteTarget.item.name}" silindi`);
       setDeleteTarget(null);
+      // detay sayfasındayken silinen monitörün sayfasında kalma
+      if (view === 'monitor-detail') setView('monitors');
       refreshAfterMutation();
     } catch (err) {
       pushToast(err.message, 'error');
@@ -543,8 +517,17 @@ export default function App() {
               onCheck={handleCheck}
               onEdit={(item) => openEditModal('monitor', item)}
               onDelete={(item) => setDeleteTarget({ type: 'monitor', item })}
-              onHistory={openChecks}
+              onDetail={openMonitorDetail}
               onAdd={() => openAddModal('monitor')}
+            />
+          )}
+
+          {view === 'monitor-detail' && detailMonitor && (
+            <MonitorDetailPage
+              monitor={detailMonitor}
+              onBack={() => setView('monitors')}
+              onEdit={(item) => openEditModal('monitor', item)}
+              onDelete={(item) => setDeleteTarget({ type: 'monitor', item })}
             />
           )}
 
@@ -679,13 +662,6 @@ export default function App() {
         deleting={deleting}
         onClose={() => setDeleteTarget(null)}
         onConfirm={handleDelete}
-      />
-
-      <ChecksModal
-        state={checksModal}
-        onClose={() => setChecksModal((prev) => ({ ...prev, open: false }))}
-        onPageChange={(page) => fetchChecks(checksModal.monitor, page)}
-        onRefresh={() => fetchChecks(checksModal.monitor, checksModal.page)}
       />
 
       <Toasts toasts={toasts} />

@@ -35,7 +35,7 @@ export default function MonitorTable({
   onCheck,
   onEdit,
   onDelete,
-  onHistory,
+  onDetail,
   onAdd,
   pagination = null,
 }) {
@@ -98,12 +98,13 @@ export default function MonitorTable({
       ) : (
         <>
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[920px] text-left text-sm">
+            <table className="w-full min-w-[1000px] text-left text-sm">
               <thead>
                 <tr className="border-t border-zinc-800/80 text-[11px] font-semibold uppercase tracking-wider text-zinc-600">
                   <th className="px-5 py-3">Site</th>
                   <th className="px-4 py-3">Durum</th>
                   <th className="px-4 py-3">Yanıt</th>
+                  <th className="px-4 py-3">7 Gün</th>
                   <th className="px-4 py-3">Domain / Sunucu</th>
                   <th className="px-4 py-3">Aralık</th>
                   <th className="px-4 py-3">Son Kontrol</th>
@@ -121,9 +122,14 @@ export default function MonitorTable({
                       }`}
                     >
                       <td className="max-w-[320px] px-5 py-4">
-                        <div className="truncate font-semibold text-zinc-100">
+                        <button
+                          type="button"
+                          onClick={() => onDetail(m)}
+                          title="Detay sayfasını aç"
+                          className="max-w-full truncate text-left font-semibold text-zinc-100 transition-colors hover:text-indigo-300"
+                        >
                           {m.name}
-                        </div>
+                        </button>
                         <a
                           href={m.url}
                           target="_blank"
@@ -148,6 +154,26 @@ export default function MonitorTable({
                         )}`}
                       >
                         {formatResponseTime(m.lastResponseTime)}
+                      </td>
+                      <td className="px-4 py-4">
+                        {m.uptime7d?.percent == null ? (
+                          <span className="text-zinc-600" title="Son 7 günde ölçüm yok">
+                            —
+                          </span>
+                        ) : (
+                          <span
+                            className={`font-mono text-[13px] font-semibold ${
+                              m.uptime7d.percent >= 99
+                                ? 'text-emerald-400'
+                                : m.uptime7d.percent >= 90
+                                  ? 'text-amber-400'
+                                  : 'text-rose-400'
+                            }`}
+                            title={`Son 7 gün: ${m.uptime7d.up}/${m.uptime7d.total} başarılı kontrol`}
+                          >
+                            %{String(m.uptime7d.percent).replace('.', ',')}
+                          </span>
+                        )}
                       </td>
                       <td className="px-4 py-4">
                         {m.domain || m.server ? (
@@ -191,8 +217,8 @@ export default function MonitorTable({
                             />
                           </IconButton>
                           <IconButton
-                            title="Kontrol geçmişi"
-                            onClick={() => onHistory(m)}
+                            title="Detay sayfası"
+                            onClick={() => onDetail(m)}
                           >
                             <History className="h-4 w-4" />
                           </IconButton>

@@ -1,5 +1,6 @@
 import { Pencil, Trash2, Globe2 } from 'lucide-react';
 import Pagination from '../components/Pagination.jsx';
+import PageContainer from '../components/PageContainer.jsx';
 import { formatDateTR, expiryClass } from '../lib/format.js';
 
 export default function DomainsPage({
@@ -12,6 +13,7 @@ export default function DomainsPage({
   onLimitChange,
 }) {
   return (
+    <PageContainer>
     <div className="overflow-hidden rounded-2xl border border-zinc-800/80 bg-zinc-900/50">
       <div className="flex items-center justify-between px-5 py-4">
         <div className="flex items-center gap-2.5">
@@ -146,5 +148,6 @@ export default function DomainsPage({
         </>
       )}
     </div>
+    </PageContainer>
   );
 }

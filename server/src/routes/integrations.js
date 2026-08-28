@@ -75,6 +75,10 @@ router.put('/:type', async (req, res) => {
     webhookUrl,
     notifyUptime,
     notifyDomains,
+    notifyGithub,
+    notifyGithubCi,
+    notifyGithubRelease,
+    notifyGithubIssue,
     domainThresholds,
     templates,
   } = req.body ?? {};
@@ -98,6 +102,10 @@ router.put('/:type', async (req, res) => {
   }
   if (notifyUptime !== undefined) doc.notifyUptime = Boolean(notifyUptime);
   if (notifyDomains !== undefined) doc.notifyDomains = Boolean(notifyDomains);
+  if (notifyGithub !== undefined) doc.notifyGithub = Boolean(notifyGithub);
+  if (notifyGithubCi !== undefined) doc.notifyGithubCi = Boolean(notifyGithubCi);
+  if (notifyGithubRelease !== undefined) doc.notifyGithubRelease = Boolean(notifyGithubRelease);
+  if (notifyGithubIssue !== undefined) doc.notifyGithubIssue = Boolean(notifyGithubIssue);
   if (domainThresholds !== undefined) {
     const parsed = parseThresholds(domainThresholds);
     if (parsed === null) {
