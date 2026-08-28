@@ -22,7 +22,8 @@ export default function StatsCards({ stats, onNavigate }) {
       iconClass: 'text-cyan-400',
       bgClass: 'bg-cyan-500/10',
       ringClass: 'ring-cyan-500/20',
-      view: 'domains',
+      view: 'inventory',
+      tab: 'domains',
     },
     {
       label: 'Sunucular',
@@ -31,7 +32,8 @@ export default function StatsCards({ stats, onNavigate }) {
       iconClass: 'text-violet-400',
       bgClass: 'bg-violet-500/10',
       ringClass: 'ring-violet-500/20',
-      view: 'servers',
+      view: 'inventory',
+      tab: 'servers',
     },
     {
       label: 'Notlar',
@@ -47,11 +49,11 @@ export default function StatsCards({ stats, onNavigate }) {
   return (
     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
       {cards.map(
-        ({ label, value, sub, icon: Icon, iconClass, bgClass, ringClass, view }) => (
+        ({ label, value, sub, icon: Icon, iconClass, bgClass, ringClass, view, tab }) => (
           <button
             key={label}
             type="button"
-            onClick={() => onNavigate(view)}
+            onClick={() => onNavigate(view, tab)}
             className="group flex items-center gap-4 rounded-2xl border border-zinc-800/80 bg-zinc-900/50 p-5 text-left transition-colors hover:border-zinc-700 hover:bg-zinc-900"
           >
             <div

@@ -30,6 +30,34 @@ npm run dev
 
 Ayrı ayrı çalıştırmak istersen: `server/` ve `client/` içinde ayrı ayrı `npm run dev`.
 
+## Docker ile Çalıştırma (önerilen)
+
+MongoDB + API + panel tek komutla konteynerlerde ayağa kalkar; kod
+değişiklikleri bind-mount sayesinde hot-reload ile yansır (server'da
+`node --watch`, panelde Vite HMR).
+
+```bash
+# Başlat (ilk seferde imajları build eder)
+npm run docker        # = docker compose up --build -d
+
+# Logları takip et
+npm run docker:logs
+
+# Durdur (veriler mongo_data volume'unda kalıcıdır)
+npm run docker:down
+```
+
+- Panel: http://localhost:5173
+- API: http://localhost:4000
+- MongoDB konteyner içinde kalır; hosttan (Compass) erişmek istersen
+  `docker-compose.yml` içindeki `mongo` ports satırının yorumunu aç.
+- `docker compose down -v` volume'u da siler (tüm veri gider).
+
+Not: Docker'daki MongoDB **boş başlar**; daha önce brew ile kurulu Mongo'da
+veri varsa `mongodump`/`mongorestore` ile taşınabilir. Ayrıca brew Mongo'su
+27017'yi kullanıyorsa çakışmaması için Docker Mongo'sunun portu hoste
+yayınlanmaz.
+
 ## API Uçları
 
 Listeleme uçları sayfalıdır: `?page=1&limit=20` (limit en fazla 100).
@@ -129,7 +157,25 @@ altında saklanır, `/uploads/...` adresinden indirilir).
 Ek uçlar: `POST /api/notes/:id/attachments` (multipart `file` alanı) ve
 `DELETE /api/notes/:id/attachments/:attachmentId`.
 
+## GitHub Takibi
+
+Sidebar'daki **GitHub** menüsünden repolarını ekleyip tek yerden izleyebilirsin:
+**Özet** (yıldız/fork/açık issue/son push), **Actions** (workflow çalışmaları),
+**Commitler**, **Issue'lar**, **PR'lar** ve **Release'ler** sekmeleri.
+Veri 60 saniyede bir sessizce tazelenir; sunucu tarafında 60 sn'lik cache ile
+GitHub rate-limit'e dost erişim yapılır.
+
+- Token **opsiyonel**: public repolar anonim izlenebilir (60 istek/sa).
+  Private repolar ve 5000 istek/sa için sayfadaki ayarlar (⚙) dişlisinden
+  **Personal Access Token** gir (GitHub → Settings → Developer settings →
+  Personal access tokens, "repo" yetkisi yeterli). Token yalnızca sunucuda
+  MongoDB'de saklanır, panele asla gönderilmez; kaydederken GitHub üzerinde
+  doğrulanır.
+- Repo eklerken `kullanici/repo` veya tam GitHub URL'si kabul edilir; repo
+  GitHub'dan doğrulanır.
+
 ## Otomatik uptime taraması
+
 
 API açık kaldığı sürece arka planda **15 saniyede bir** taranır: kontrol aralığı
 (`interval`) dolmuş tüm aktif monitörler otomatik ölçülür, sonuç `CheckLog`'a

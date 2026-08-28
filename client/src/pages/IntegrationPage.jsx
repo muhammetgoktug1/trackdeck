@@ -16,9 +16,13 @@ import { renderTemplate } from '../lib/format.js';
 
 const THRESHOLD_OPTIONS = [60, 45, 30, 15, 7, 3, 1];
 
+// Sekme sırası (sunucudaki integration türleriyle birebir)
+const INTEGRATION_TABS = ['whatsapp', 'slack', 'discord'];
+
 const CHANNEL_META = {
   whatsapp: {
     icon: MessageCircle,
+    tab: 'WhatsApp',
     title: 'WhatsApp Bağlantısı',
     subtitle: 'cms_api ile aynı köprü: POST { session, chatId, text } + X-Api-Key',
     iconClass: 'text-emerald-400',
@@ -27,6 +31,7 @@ const CHANNEL_META = {
   },
   slack: {
     icon: Slack,
+    tab: 'Slack',
     title: 'Slack Bağlantısı',
     subtitle: 'Incoming Webhook üzerinden mesaj gönderilir',
     iconClass: 'text-fuchsia-400',
@@ -35,6 +40,7 @@ const CHANNEL_META = {
   },
   discord: {
     icon: MessagesSquare,
+    tab: 'Discord',
     title: 'Discord Bağlantısı',
     subtitle: 'Kanal/Discord Webhook üzerinden mesaj gönderilir',
     iconClass: 'text-indigo-400',
@@ -188,6 +194,7 @@ function TemplateField({ field, value, defaultValue, onChange, previewTime }) {
 
 export default function IntegrationPage({
   type,
+  onTabChange,
   config,
   loading,
   saving,
@@ -222,9 +229,42 @@ export default function IntegrationPage({
     }
   }, [config]);
 
+  // Kanal sekmeleri — yükleme sırasında da görünür kalır
+  const tabBar = (
+    <div
+      role="tablist"
+      aria-label="Bildirim kanalları"
+      className="flex flex-wrap gap-2 rounded-2xl border border-zinc-800/80 bg-zinc-900/50 p-1.5"
+    >
+      {INTEGRATION_TABS.map((tabId) => {
+        const tabMeta = CHANNEL_META[tabId];
+        const TabIcon = tabMeta.icon;
+        const active = tabId === type;
+        return (
+          <button
+            key={tabId}
+            type="button"
+            role="tab"
+            aria-selected={active}
+            onClick={() => onTabChange?.(tabId)}
+            className={`flex min-w-[110px] flex-1 items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition-colors ${
+              active
+                ? `ring-1 ${tabMeta.bgClass} ${tabMeta.ringClass} ${tabMeta.iconClass}`
+                : 'text-zinc-400 hover:bg-zinc-800/50 hover:text-zinc-200'
+            }`}
+          >
+            <TabIcon className="h-4 w-4" />
+            {tabMeta.tab}
+          </button>
+        );
+      })}
+    </div>
+  );
+
   if (loading || !form) {
     return (
-      <div className="flex flex-col gap-4">
+      <div className="flex max-w-3xl flex-col gap-5">
+        {tabBar}
         <div className="h-40 animate-pulse rounded-2xl bg-zinc-900/50" />
         <div className="h-56 animate-pulse rounded-2xl bg-zinc-900/50" />
       </div>
@@ -252,6 +292,8 @@ export default function IntegrationPage({
 
   return (
     <div className="flex max-w-3xl flex-col gap-5">
+      {tabBar}
+
       {/* Bağlantı kartı */}
       <div className="rounded-2xl border border-zinc-800/80 bg-zinc-900/50">
         <div className="flex items-center justify-between gap-4 border-b border-zinc-800/80 px-6 py-4">

@@ -56,6 +56,16 @@ export const api = {
     request(`/integrations/${type}`, { method: 'PUT', body: JSON.stringify(body) }),
   testIntegration: (type) => request(`/integrations/${type}/test`, { method: 'POST' }),
 
+  getGithubSettings: () => request('/github/settings'),
+  saveGithubSettings: (token) =>
+    request('/github/settings', { method: 'PUT', body: JSON.stringify({ token }) }),
+  listGithubRepos: () => request('/github/repos'),
+  addGithubRepo: (fullName) =>
+    request('/github/repos', { method: 'POST', body: JSON.stringify({ fullName }) }),
+  deleteGithubRepo: (id) => request(`/github/repos/${id}`, { method: 'DELETE' }),
+  githubTabData: (id, tab, limit = 15) =>
+    request(`/github/repos/${id}/${tab}?limit=${limit}`),
+
   listNotes: (page = 1, limit = 20) =>
     request(`/notes?page=${page}&limit=${limit}`),
   createNote: (body) =>

@@ -2,31 +2,25 @@ import {
   Activity,
   LayoutDashboard,
   StickyNote,
-  Globe2,
-  Server,
+  Boxes,
+  Github,
   Building2,
-  MessageCircle,
-  Slack,
-  MessagesSquare,
+  Plug,
 } from 'lucide-react';
 
 const NAV_PAGES = [
   { id: 'dashboard', icon: LayoutDashboard, label: 'Genel Bakış' },
   { id: 'monitors', icon: Activity, label: 'Uptime Monitörleri' },
-  { id: 'domains', icon: Globe2, label: 'Domainler' },
-  { id: 'servers', icon: Server, label: 'Sunucular' },
+  { id: 'inventory', icon: Boxes, label: 'Envanter' },
+  { id: 'github', icon: Github, label: 'GitHub' },
   { id: 'notes', icon: StickyNote, label: 'Notlar' },
 ];
 
 // Tekrar kullanılan tanımlar (bugün sağlayıcılar; kategoriler vb. eklenebilir)
 const NAV_DEFINITIONS = [{ id: 'providers', icon: Building2, label: 'Sağlayıcılar' }];
 
-// Dış servis bağlantıları
-const NAV_INTEGRATIONS = [
-  { id: 'whatsapp', icon: MessageCircle, label: 'WhatsApp' },
-  { id: 'slack', icon: Slack, label: 'Slack' },
-  { id: 'discord', icon: MessagesSquare, label: 'Discord' },
-];
+// Dış servis bağlantıları (kanallar sayfa içinde sekmeler halinde)
+const NAV_INTEGRATIONS = [{ id: 'integrations', icon: Plug, label: 'Entegrasyonlar' }];
 
 const NAV_SOON = [];
 

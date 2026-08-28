@@ -9,6 +9,7 @@ import domainRoutes from './routes/domains.js';
 import serverRoutes from './routes/servers.js';
 import providerRoutes from './routes/providers.js';
 import integrationRoutes from './routes/integrations.js';
+import githubRoutes from './routes/github.js';
 import noteRoutes from './routes/notes.js';
 import Note from './models/Note.js';
 import { startDomainAlertScheduler } from './lib/domainAlerts.js';
@@ -56,6 +57,7 @@ app.use('/api/domains', domainRoutes);
 app.use('/api/servers', serverRoutes);
 app.use('/api/providers', providerRoutes);
 app.use('/api/integrations', integrationRoutes);
+app.use('/api/github', githubRoutes);
 app.use('/api/notes', noteRoutes);
 
 app.use((_req, res) => {

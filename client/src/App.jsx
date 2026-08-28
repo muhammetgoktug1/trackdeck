@@ -5,8 +5,10 @@ import DashboardPage from './pages/DashboardPage.jsx';
 import MonitorsPage from './pages/MonitorsPage.jsx';
 import DomainsPage from './pages/DomainsPage.jsx';
 import ServersPage from './pages/ServersPage.jsx';
+import InventoryPage from './pages/InventoryPage.jsx';
 import ProvidersPage from './pages/ProvidersPage.jsx';
 import IntegrationPage from './pages/IntegrationPage.jsx';
+import GithubPage from './pages/GithubPage.jsx';
 import NotesPage from './pages/NotesPage.jsx';
 import NoteModal from './components/NoteModal.jsx';
 import MonitorModal from './components/MonitorModal.jsx';
@@ -31,29 +33,27 @@ const VIEW_META = {
     addType: 'monitor',
     addLabel: 'Yeni Monitör',
   },
-  domains: { title: 'Domainler', subtitle: 'domainlerini ve bitiş tarihlerini takip et', addType: 'domain', addLabel: 'Yeni Domain' },
-  servers: { title: 'Sunucular', subtitle: 'sunucularını tek yerden yönet', addType: 'server', addLabel: 'Yeni Sunucu' },
+  inventory: {
+    title: 'Envanter',
+    subtitle: 'domain ve sunucularını tek sayfadan yönet',
+    addType: 'domain',
+    addLabel: 'Yeni Domain',
+  },
   providers: {
     title: 'Sağlayıcılar',
     subtitle: 'domain ve sunucu firmalarını merkezi tanımla',
     addType: 'provider',
     addLabel: 'Yeni Sağlayıcı',
   },
-  whatsapp: {
-    title: 'WhatsApp',
-    subtitle: 'bildirim entegrasyonunu yapılandır',
+  integrations: {
+    title: 'Entegrasyonlar',
+    subtitle: 'bildirim kanallarını bağla ve özelleştir',
     addType: null,
     addLabel: '',
   },
-  slack: {
-    title: 'Slack',
-    subtitle: 'bildirim entegrasyonunu yapılandır',
-    addType: null,
-    addLabel: '',
-  },
-  discord: {
-    title: 'Discord',
-    subtitle: 'bildirim entegrasyonunu yapılandır',
+  github: {
+    title: 'GitHub',
+    subtitle: 'repolarını, CI ve geliştirme akışını takip et',
     addType: null,
     addLabel: '',
   },
@@ -65,10 +65,10 @@ const VIEW_META = {
   },
 };
 
-const INTEGRATION_VIEWS = ['whatsapp', 'slack', 'discord'];
-
 export default function App() {
   const [view, setView] = useState('dashboard');
+  // Envanter sayfasının aktif sekmesi (domains | servers)
+  const [inventoryTab, setInventoryTab] = useState('domains');
   const [apiOnline, setApiOnline] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [checkingIds, setCheckingIds] = useState(() => new Set());
@@ -105,7 +105,8 @@ export default function App() {
     loading: false,
   });
 
-  // Entegrasyon ayarları (whatsapp / slack / discord)
+  // Entegrasyon ayarları (aktif sekme: whatsapp / slack / discord)
+  const [integrationTab, setIntegrationTab] = useState('whatsapp');
   const [integration, setIntegration] = useState({
     type: null,
     config: null,
@@ -124,6 +125,12 @@ export default function App() {
       setToasts((prev) => prev.filter((t) => t.id !== id));
     }, 3200);
   }, []);
+
+  // Sekmeli sayfalara (envanter) doğru sekmeye atlayarak gidebilmek için
+  const navigate = (nextView, tab) => {
+    setView(nextView);
+    if (tab) setInventoryTab(tab);
+  };
 
   const LIST_LOADERS = {
     monitors: { load: api.listMonitors, set: setMonitorsList },
@@ -194,52 +201,63 @@ export default function App() {
     setListLoading(true);
     if (view === 'dashboard') {
       loadOverview();
-    } else if (INTEGRATION_VIEWS.includes(view)) {
-      loadIntegration(view);
+    } else if (view === 'github') {
+      // GitHub sayfası verisini kendisi yükler
+      setListLoading(false);
+    } else if (view === 'integrations') {
+      loadIntegration(integrationTab);
+    } else if (view === 'inventory') {
+      loadList(inventoryTab, 1, DEFAULT_LIMIT);
     } else {
       loadList(view, 1, DEFAULT_LIMIT);
     }
-  }, [view, loadOverview, loadList, loadIntegration]);
+  }, [view, integrationTab, inventoryTab, loadOverview, loadList, loadIntegration]);
 
   // Otomatik yenileme: aktif görünümün verisi (entegrasyon formunu bozmamak için hariç)
   useEffect(() => {
     const timer = setInterval(() => {
       if (view === 'dashboard') {
         loadOverview({ silent: true });
-      } else if (INTEGRATION_VIEWS.includes(view)) {
+      } else if (view === 'integrations' || view === 'github') {
         return;
       } else {
+        const kind = view === 'inventory' ? inventoryTab : view;
         const list = {
           monitors: monitorsList,
           domains: domainsList,
           servers: serversList,
           providers: providersList,
           notes: notesList,
-        }[view];
-        loadList(view, list.page, list.limit, { silent: true });
+        }[kind];
+        if (list) loadList(kind, list.page, list.limit, { silent: true });
       }
     }, REFRESH_MS);
     return () => clearInterval(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [view, monitorsList.page, monitorsList.limit, domainsList.page, domainsList.limit, serversList.page, serversList.limit, providersList.page, providersList.limit, loadOverview, loadList]);
+  }, [view, inventoryTab, monitorsList.page, monitorsList.limit, domainsList.page, domainsList.limit, serversList.page, serversList.limit, providersList.page, providersList.limit, loadOverview, loadList]);
 
   const refreshCurrent = () => {
     if (view === 'dashboard') {
       loadOverview();
       return;
     }
-    if (INTEGRATION_VIEWS.includes(view)) {
-      loadIntegration(view);
+    if (view === 'github') {
+      // GitHub sayfası kendi yenileme düğmesine sahip
       return;
     }
+    if (view === 'integrations') {
+      loadIntegration(integrationTab);
+      return;
+    }
+    const kind = view === 'inventory' ? inventoryTab : view;
     const list = {
       monitors: monitorsList,
       domains: domainsList,
       servers: serversList,
       providers: providersList,
       notes: notesList,
-    }[view];
-    loadList(view, list.page, list.limit);
+    }[kind];
+    loadList(kind, list.page, list.limit);
   };
 
   // Her değişiklikte overview'ı da tazele (kartlar tutarlı kalsın)
@@ -460,12 +478,19 @@ export default function App() {
     }
   };
 
-  const meta = VIEW_META[view];
-  const currentList = { monitors: monitorsList, domains: domainsList, servers: serversList }[view];
+  // Envanterde üst bardaki ekleme butonu aktif sekmeye göre değişir
+  const meta =
+    view === 'inventory'
+      ? {
+          ...VIEW_META.inventory,
+          addType: inventoryTab === 'domains' ? 'domain' : 'server',
+          addLabel: inventoryTab === 'domains' ? 'Yeni Domain' : 'Yeni Sunucu',
+        }
+      : VIEW_META[view];
 
   return (
     <div className="flex min-h-screen bg-zinc-950 text-zinc-100">
-      <Sidebar view={view} onNavigate={setView} apiOnline={apiOnline} />
+      <Sidebar view={view} onNavigate={navigate} apiOnline={apiOnline} />
 
       <main className="flex min-w-0 flex-1 flex-col">
         {/* Üst bar */}
@@ -505,7 +530,7 @@ export default function App() {
         {/* İçerik */}
         <div className="flex flex-1 flex-col gap-5 px-6 py-6 lg:px-8">
           {view === 'dashboard' && (
-            <DashboardPage stats={overview} onNavigate={setView} />
+            <DashboardPage stats={overview} onNavigate={navigate} />
           )}
 
           {view === 'monitors' && (
@@ -523,28 +548,34 @@ export default function App() {
             />
           )}
 
-          {view === 'domains' && (
-            <DomainsPage
-              list={domainsList}
-              loading={listLoading}
-              onPageChange={(page) => loadList('domains', page, domainsList.limit)}
-              onLimitChange={(limit) => loadList('domains', 1, limit)}
-              onEdit={(item) => openEditModal('domain', item)}
-              onDelete={(item) => setDeleteTarget({ type: 'domain', item })}
-              onAdd={() => openAddModal('domain')}
-            />
-          )}
-
-          {view === 'servers' && (
-            <ServersPage
-              list={serversList}
-              loading={listLoading}
-              onPageChange={(page) => loadList('servers', page, serversList.limit)}
-              onLimitChange={(limit) => loadList('servers', 1, limit)}
-              onEdit={(item) => openEditModal('server', item)}
-              onDelete={(item) => setDeleteTarget({ type: 'server', item })}
-              onAdd={() => openAddModal('server')}
-            />
+          {view === 'inventory' && (
+            <InventoryPage
+              activeTab={inventoryTab}
+              onTabChange={setInventoryTab}
+              totals={{ domains: domainsList.total, servers: serversList.total }}
+            >
+              {inventoryTab === 'domains' ? (
+                <DomainsPage
+                  list={domainsList}
+                  loading={listLoading}
+                  onPageChange={(page) => loadList('domains', page, domainsList.limit)}
+                  onLimitChange={(limit) => loadList('domains', 1, limit)}
+                  onEdit={(item) => openEditModal('domain', item)}
+                  onDelete={(item) => setDeleteTarget({ type: 'domain', item })}
+                  onAdd={() => openAddModal('domain')}
+                />
+              ) : (
+                <ServersPage
+                  list={serversList}
+                  loading={listLoading}
+                  onPageChange={(page) => loadList('servers', page, serversList.limit)}
+                  onLimitChange={(limit) => loadList('servers', 1, limit)}
+                  onEdit={(item) => openEditModal('server', item)}
+                  onDelete={(item) => setDeleteTarget({ type: 'server', item })}
+                  onAdd={() => openAddModal('server')}
+                />
+              )}
+            </InventoryPage>
           )}
 
           {view === 'providers' && (
@@ -572,11 +603,14 @@ export default function App() {
             />
           )}
 
-          {INTEGRATION_VIEWS.includes(view) && (
+          {view === 'github' && <GithubPage />}
+
+          {view === 'integrations' && (
             <IntegrationPage
-              type={view}
-              config={integration.type === view ? integration.config : null}
-              loading={integration.type !== view || integration.loading}
+              type={integrationTab}
+              onTabChange={setIntegrationTab}
+              config={integration.type === integrationTab ? integration.config : null}
+              loading={integration.type !== integrationTab || integration.loading}
               saving={integration.saving}
               testing={integration.testing}
               onSave={handleIntegrationSave}

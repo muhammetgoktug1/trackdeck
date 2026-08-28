@@ -22,6 +22,10 @@ const TYPE_META = {
     title: 'Notu sil',
     note: '',
   },
+  githubRepo: {
+    title: 'Repoyu takipten çıkar',
+    note: 'Yalnızca panelden kaldırılır; GitHub üzerindeki repo silinmez.',
+  },
 };
 
 export default function ConfirmModal({ target, deleting, onClose, onConfirm }) {
