@@ -19,7 +19,8 @@ const labelClass =
 
 const EMPTY_FORM = { name: '', color: '#64748b' };
 
-export default function CategoryModal({ open, category, saving, error, onSave, onClose }) {
+// contextLabel: hangi bağlamda kullanıldığı (varsayılan notlar); ipucu metninde
+export default function CategoryModal({ open, category, saving, error, onSave, onClose, contextLabel = 'not' }) {
   const [form, setForm] = useState(EMPTY_FORM);
 
   useEffect(() => {
@@ -81,7 +82,9 @@ export default function CategoryModal({ open, category, saving, error, onSave, o
               autoFocus
             />
             <p className="mt-1.5 text-[11px] text-zinc-600">
-              Notlara eklenirken listeden seçilir; notlar bu kategoriye göre filtrelenebilir
+              {contextLabel === 'not'
+                ? "Notlara eklenirken listeden seçilir; notlar bu kategoriye göre filtrelenebilir"
+                : "Şifre kayıtlarına eklenirken listeden seçilir; kayıtlar bu kategoriye göre filtrelenebilir"}
             </p>
           </div>
 

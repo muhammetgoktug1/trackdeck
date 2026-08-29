@@ -2,6 +2,7 @@ import { Pencil, Trash2, Tag } from 'lucide-react';
 import Pagination from '../components/Pagination.jsx';
 import PageContainer from '../components/PageContainer.jsx';
 
+// Hem Notlar hem Şifreler sayfalarının kategori sekmesi (contextLabel ile ayırınır)
 export default function CategoriesPage({
   list,
   loading,
@@ -10,13 +11,17 @@ export default function CategoriesPage({
   onAdd,
   onPageChange,
   onLimitChange,
+  contextLabel = 'not',
 }) {
+  const isNote = contextLabel === 'not';
   return (
     <PageContainer>
     <div className="overflow-hidden rounded-2xl border border-zinc-800/80 bg-zinc-900/50">
       <div className="flex items-center justify-between px-5 py-4">
         <div className="flex items-center gap-2.5">
-          <h2 className="text-sm font-semibold text-white">Not Kategorileri</h2>
+          <h2 className="text-sm font-semibold text-white">
+            {isNote ? 'Not Kategorileri' : 'Şifre Kategorileri'}
+          </h2>
           {!loading && (
             <span className="rounded-full bg-zinc-800 px-2 py-0.5 text-xs font-semibold text-zinc-400">
               {list.total}
@@ -44,8 +49,9 @@ export default function CategoriesPage({
             Henüz kategori yok
           </h3>
           <p className="mt-1 max-w-sm text-sm leading-relaxed text-zinc-500">
-            Kategorileri bir kez burada tanımla; not eklerken listeden seç,
-            notları kategoriye göre filtrele.
+            {isNote
+              ? 'Kategorileri bir kez burada tanımla; not eklerken listeden seç, notları kategoriye göre filtrele.'
+              : 'Kategorileri bir kez burada tanımla; hesap kayıtlarında listeden seç, kayıtları kategoriye göre filtrele.'}
           </p>
           <button
             type="button"

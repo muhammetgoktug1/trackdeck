@@ -6,6 +6,7 @@ import {
   Github,
   Building2,
   Plug,
+  KeyRound,
 } from 'lucide-react';
 
 const NAV_PAGES = [
@@ -14,6 +15,7 @@ const NAV_PAGES = [
   { id: 'inventory', icon: Boxes, label: 'Envanter' },
   { id: 'github', icon: Github, label: 'GitHub' },
   { id: 'notes', icon: StickyNote, label: 'Notlar' },
+  { id: 'credentials', icon: KeyRound, label: 'Şifreler' },
 ];
 
 // Tekrar kullanılan tanımlar (bugün sağlayıcılar; not kategorileri Notlar

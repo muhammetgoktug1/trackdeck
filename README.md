@@ -193,7 +193,22 @@ bu yüzden API yeniden başlasa bile çift bildirim gitmez. İlk tarama yalnızc
 referans alır, bildirim göndermez. Mesaj şablonları diğerleri gibi
 panelden düzenlenebilir (`githubCi`, `githubRelease`, `githubIssue`).
 
+## Şifre Yöneticisi
+
+Sidebar'daki **Şifreler** menüsünden hesap giriş bilgilerini (Instagram, Gmail,
+Trendyol/Hepsiburada, sunucu loginleri...) yönet: sekmeli yapı (Şifreler /
+Kategoriler), arama, kategori filtreleri, göz ikonuyla şifre gösterme (25 sn
+sonra otomatik gizlenir), tek tıkla kopyalama ve güçlü şifre üretici.
+
+**Güvenlik:** Şifreler **AES-256-GCM** ile şifrelenerek saklanır; liste
+uçlarında asla düz metin dönmez, yalnız "göster" isteğinde tek tek çözülür.
+Anahtar `server/.env` içindeki `MASTER_KEY`'dir — ilk açılışta otomatik
+üretilir. **`.env` dosyasını kaybetmek şifrelerin geri getirilemez olması
+anlamına gelir; yedeklemeyi unutma.** Yeni kayıtta şifre opsiyonel; düzenlerken
+boş bırakılırsa mevcut şifre korunur.
+
 ## Otomatik uptime taraması
+
 
 
 API açık kaldığı sürece arka planda **15 saniyede bir** taranır: kontrol aralığı

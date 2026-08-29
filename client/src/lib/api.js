@@ -99,4 +99,26 @@ export const api = {
   },
   deleteNoteAttachment: (id, attachmentId) =>
     request(`/notes/${id}/attachments/${attachmentId}`, { method: 'DELETE' }),
+
+  listCredentials: (page = 1, limit = 20, { q = '', category = '' } = {}) =>
+    request(
+      `/credentials?page=${page}&limit=${limit}${q ? `&q=${encodeURIComponent(q)}` : ''}${
+        category ? `&category=${category}` : ''
+      }`
+    ),
+  createCredential: (body) =>
+    request('/credentials', { method: 'POST', body: JSON.stringify(body) }),
+  updateCredential: (id, body) =>
+    request(`/credentials/${id}`, { method: 'PATCH', body: JSON.stringify(body) }),
+  deleteCredential: (id) => request(`/credentials/${id}`, { method: 'DELETE' }),
+  revealCredential: (id) => request(`/credentials/${id}/reveal`, { method: 'POST' }),
+
+  listCredentialCategories: (page = 1, limit = 100) =>
+    request(`/credential-categories?page=${page}&limit=${limit}`),
+  createCredentialCategory: (body) =>
+    request('/credential-categories', { method: 'POST', body: JSON.stringify(body) }),
+  updateCredentialCategory: (id, body) =>
+    request(`/credential-categories/${id}`, { method: 'PATCH', body: JSON.stringify(body) }),
+  deleteCredentialCategory: (id) =>
+    request(`/credential-categories/${id}`, { method: 'DELETE' }),
 };

@@ -22,6 +22,14 @@ const TYPE_META = {
     title: 'Kategoriyi sil',
     note: 'Bu kategorideki notların kategori bağlantısı da kaldırılır (notlar silinmez).',
   },
+  credential: {
+    title: 'Kaydı sil',
+    note: 'Hesap bilgisi kalıcı olarak silinir; geri alınamaz.',
+  },
+  credentialCategory: {
+    title: 'Kategoriyi sil',
+    note: 'Bu kategorideki kayıtların kategori bağlantısı kaldırılır (kayıtlar silinmez).',
+  },
   note: {
     title: 'Notu sil',
     note: '',

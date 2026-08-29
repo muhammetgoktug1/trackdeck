@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Plus, RefreshCw, StickyNote, Tag } from 'lucide-react';
+import { Plus, RefreshCw, StickyNote, Tag, KeyRound } from 'lucide-react';
 import Sidebar from './components/Sidebar.jsx';
 import TabBar from './components/TabBar.jsx';
 import DashboardPage from './pages/DashboardPage.jsx';
@@ -13,12 +13,14 @@ import CategoriesPage from './pages/CategoriesPage.jsx';
 import IntegrationPage from './pages/IntegrationPage.jsx';
 import GithubPage from './pages/GithubPage.jsx';
 import NotesPage from './pages/NotesPage.jsx';
+import CredentialsPage from './pages/CredentialsPage.jsx';
 import NoteModal from './components/NoteModal.jsx';
 import MonitorModal from './components/MonitorModal.jsx';
 import DomainModal from './components/DomainModal.jsx';
 import ServerModal from './components/ServerModal.jsx';
 import ProviderModal from './components/ProviderModal.jsx';
 import CategoryModal from './components/CategoryModal.jsx';
+import CredentialModal from './components/CredentialModal.jsx';
 import ConfirmModal from './components/ConfirmModal.jsx';
 import Toasts from './components/Toasts.jsx';
 import { api } from './lib/api.js';
@@ -72,6 +74,12 @@ const VIEW_META = {
     addType: 'note',
     addLabel: 'Yeni Not',
   },
+  credentials: {
+    title: 'Şifreler',
+    subtitle: 'hesap giriş bilgilerini güvenle sakla',
+    addType: 'credential',
+    addLabel: 'Yeni Kayıt',
+  },
 };
 
 export default function App() {
@@ -91,13 +99,26 @@ export default function App() {
   const [providersList, setProvidersList] = useState(EMPTY_LIST);
   const [categoriesList, setCategoriesList] = useState(EMPTY_LIST);
   const [notesList, setNotesList] = useState(EMPTY_LIST);
+  const [credentialsList, setCredentialsList] = useState(EMPTY_LIST);
+  const [credentialCategoriesList, setCredentialCategoriesList] = useState(EMPTY_LIST);
   const [listLoading, setListLoading] = useState(true);
 
   // Notlar sayfasının aktif kategori filtresi (null = tümü)
   const [notesCategoryFilter, setNotesCategoryFilter] = useState(null);
 
+  // Şifreler sayfası: sekme + arama + kategori filtresi
+  const [credentialsTab, setCredentialsTab] = useState('credentials');
+  const [credentialsQuery, setCredentialsQuery] = useState('');
+  const [credentialsCategoryFilter, setCredentialsCategoryFilter] = useState(null);
+
   // Modallardaki bağlantı seçenekleri
-  const [refOptions, setRefOptions] = useState({ domains: [], servers: [], providers: [] });
+  const [refOptions, setRefOptions] = useState({
+    domains: [],
+    servers: [],
+    providers: [],
+    categories: [],
+    credentialCategories: [],
+  });
 
   // modal: { open, type: 'monitor'|'domain'|'server', item }
   const [modal, setModal] = useState({ open: false, type: null, item: null });
@@ -150,6 +171,15 @@ export default function App() {
       load: (page, limit) => api.listNotes(page, limit, notesCategoryFilter),
       set: setNotesList,
     },
+    credentials: {
+      load: (page, limit) =>
+        api.listCredentials(page, limit, {
+          q: credentialsQuery,
+          category: credentialsCategoryFilter,
+        }),
+      set: setCredentialsList,
+    },
+    credentialCategories: { load: api.listCredentialCategories, set: setCredentialCategoriesList },
   };
 
   const loadOverview = useCallback(
@@ -231,10 +261,31 @@ export default function App() {
           .then((r) => setRefOptions((p) => ({ ...p, categories: r.data })))
           .catch(() => {});
       }
+    } else if (view === 'credentials') {
+      if (credentialsTab === 'credentialCategories') {
+        loadList('credentialCategories', 1, DEFAULT_LIMIT);
+      } else {
+        loadList('credentials', 1, DEFAULT_LIMIT);
+        // filtre çipleri ve modal seçenekleri için kategoriler
+        api
+          .listCredentialCategories(1, 100)
+          .then((r) => setRefOptions((p) => ({ ...p, credentialCategories: r.data })))
+          .catch(() => {});
+      }
     } else {
       loadList(view, 1, DEFAULT_LIMIT);
     }
-  }, [view, integrationTab, inventoryTab, notesTab, loadOverview, loadList, loadIntegration]);
+  }, [view, integrationTab, inventoryTab, notesTab, credentialsTab, loadOverview, loadList, loadIntegration]);
+
+  // Şifreler: arama kutusu / kategori filtresi değişince (kısa beklemeyle) yeniden yükle
+  useEffect(() => {
+    if (view !== 'credentials' || credentialsTab !== 'credentials') return;
+    const timer = setTimeout(() => {
+      loadList('credentials', 1, DEFAULT_LIMIT);
+    }, 350);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [credentialsQuery, credentialsCategoryFilter]);
 
   // Notlar sayfasında kategori filtresi değişince listeyi yeniden yükle
   useEffect(() => {
@@ -258,7 +309,9 @@ export default function App() {
             ? inventoryTab
             : view === 'notes' && notesTab === 'categories'
               ? 'categories'
-              : view;
+              : view === 'credentials' && credentialsTab === 'credentialCategories'
+                ? 'credentialCategories'
+                : view;
         const list = {
           monitors: monitorsList,
           domains: domainsList,
@@ -266,6 +319,8 @@ export default function App() {
           providers: providersList,
           categories: categoriesList,
           notes: notesList,
+          credentials: credentialsList,
+          credentialCategories: credentialCategoriesList,
         }[kind];
         if (list) loadList(kind, list.page, list.limit, { silent: true });
       }
@@ -292,7 +347,9 @@ export default function App() {
         ? inventoryTab
         : view === 'notes' && notesTab === 'categories'
           ? 'categories'
-          : view;
+          : view === 'credentials' && credentialsTab === 'credentialCategories'
+            ? 'credentialCategories'
+            : view;
     const list = {
       monitors: monitorsList,
       domains: domainsList,
@@ -300,6 +357,8 @@ export default function App() {
       providers: providersList,
       categories: categoriesList,
       notes: notesList,
+      credentials: credentialsList,
+      credentialCategories: credentialCategoriesList,
     }[kind];
     loadList(kind, list.page, list.limit);
   };
@@ -324,6 +383,9 @@ export default function App() {
       } else if (type === 'note') {
         const categories = await api.listCategories(1, 100);
         setRefOptions((prev) => ({ ...prev, categories: categories.data }));
+      } else if (type === 'credential') {
+        const categories = await api.listCredentialCategories(1, 100);
+        setRefOptions((prev) => ({ ...prev, credentialCategories: categories.data }));
       }
     } catch {
       // seçenekler yüklenemezse boş select ile devam
@@ -429,6 +491,12 @@ export default function App() {
       provider: { create: api.createProvider, update: api.updateProvider, label: 'Sağlayıcı' },
       category: { create: api.createCategory, update: api.updateCategory, label: 'Kategori' },
       note: { create: api.createNote, update: api.updateNote, label: 'Not' },
+      credential: { create: api.createCredential, update: api.updateCredential, label: 'Kayıt' },
+      credentialCategory: {
+        create: api.createCredentialCategory,
+        update: api.updateCredentialCategory,
+        label: 'Kategori',
+      },
     };
     try {
       if (item) {
@@ -487,6 +555,8 @@ export default function App() {
       provider: api.deleteProvider,
       category: api.deleteCategory,
       note: api.deleteNote,
+      credential: api.deleteCredential,
+      credentialCategory: api.deleteCredentialCategory,
     };
     try {
       await actions[deleteTarget.type](deleteTarget.item.id);
@@ -516,7 +586,13 @@ export default function App() {
             addType: 'category',
             addLabel: 'Yeni Kategori',
           }
-        : VIEW_META[view];
+        : view === 'credentials' && credentialsTab === 'credentialCategories'
+          ? {
+              ...VIEW_META.credentials,
+              addType: 'credentialCategory',
+              addLabel: 'Yeni Kategori',
+            }
+          : VIEW_META[view];
 
   return (
     <div className="flex min-h-screen bg-zinc-950 text-zinc-100">
@@ -669,6 +745,55 @@ export default function App() {
             </div>
           )}
 
+          {view === 'credentials' && (
+            <div className="flex flex-col gap-5">
+              <TabBar
+                ariaLabel="Şifreler sekmeleri"
+                active={credentialsTab}
+                onChange={setCredentialsTab}
+                totals={{
+                  credentials: credentialsList.total,
+                  credentialCategories: credentialCategoriesList.total,
+                }}
+                tabs={[
+                  { id: 'credentials', label: 'Şifreler', icon: KeyRound },
+                  { id: 'credentialCategories', label: 'Kategoriler', icon: Tag },
+                ]}
+              />
+              {credentialsTab === 'credentials' ? (
+                <CredentialsPage
+                  list={credentialsList}
+                  loading={listLoading}
+                  categories={refOptions.credentialCategories}
+                  activeCategory={credentialsCategoryFilter}
+                  onCategoryChange={setCredentialsCategoryFilter}
+                  query={credentialsQuery}
+                  onQueryChange={setCredentialsQuery}
+                  onPageChange={(page) => loadList('credentials', page, credentialsList.limit)}
+                  onLimitChange={(limit) => loadList('credentials', 1, limit)}
+                  onEdit={(item) => openEditModal('credential', item)}
+                  onDelete={(item) =>
+                    setDeleteTarget({ type: 'credential', item: { ...item, name: item.title } })
+                  }
+                  onAdd={() => openAddModal('credential')}
+                />
+              ) : (
+                <CategoriesPage
+                  list={credentialCategoriesList}
+                  loading={listLoading}
+                  contextLabel="credential"
+                  onPageChange={(page) =>
+                    loadList('credentialCategories', page, credentialCategoriesList.limit)
+                  }
+                  onLimitChange={(limit) => loadList('credentialCategories', 1, limit)}
+                  onEdit={(item) => openEditModal('credentialCategory', item)}
+                  onDelete={(item) => setDeleteTarget({ type: 'credentialCategory', item })}
+                  onAdd={() => openAddModal('credentialCategory')}
+                />
+              )}
+            </div>
+          )}
+
           {view === 'github' && <GithubPage />}
 
           {view === 'integrations' && (
@@ -746,6 +871,26 @@ export default function App() {
         category={modal.item}
         saving={saving}
         error={formError}
+        onSave={handleSave}
+        onClose={() => setModal({ open: false, type: null, item: null })}
+      />
+
+      <CategoryModal
+        open={modal.open && modal.type === 'credentialCategory'}
+        category={modal.item}
+        saving={saving}
+        error={formError}
+        contextLabel="credential"
+        onSave={handleSave}
+        onClose={() => setModal({ open: false, type: null, item: null })}
+      />
+
+      <CredentialModal
+        open={modal.open && modal.type === 'credential'}
+        credential={modal.item}
+        saving={saving}
+        error={formError}
+        categoryOptions={refOptions.credentialCategories}
         onSave={handleSave}
         onClose={() => setModal({ open: false, type: null, item: null })}
       />
