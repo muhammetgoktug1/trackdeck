@@ -71,8 +71,16 @@ export const api = {
   githubTabData: (id, tab, limit = 15) =>
     request(`/github/repos/${id}/${tab}?limit=${limit}`),
 
-  listNotes: (page = 1, limit = 20) =>
-    request(`/notes?page=${page}&limit=${limit}`),
+  listCategories: (page = 1, limit = 100) =>
+    request(`/categories?page=${page}&limit=${limit}`),
+  createCategory: (body) =>
+    request('/categories', { method: 'POST', body: JSON.stringify(body) }),
+  updateCategory: (id, body) =>
+    request(`/categories/${id}`, { method: 'PATCH', body: JSON.stringify(body) }),
+  deleteCategory: (id) => request(`/categories/${id}`, { method: 'DELETE' }),
+
+  listNotes: (page = 1, limit = 20, category = null) =>
+    request(`/notes?page=${page}&limit=${limit}${category ? `&category=${category}` : ''}`),
   createNote: (body) =>
     request('/notes', { method: 'POST', body: JSON.stringify(body) }),
   updateNote: (id, body) =>

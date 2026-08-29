@@ -7,7 +7,7 @@ WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm ci
 
-EXPOSE 5173
+EXPOSE 40011
 
 # --host: konteyner dışından (host tarayıcı) erişim için 0.0.0.0'e bağlanır
 CMD ["npm", "run", "dev", "--", "--host"]

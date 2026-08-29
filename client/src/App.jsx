@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Plus, RefreshCw } from 'lucide-react';
+import { Plus, RefreshCw, StickyNote, Tag } from 'lucide-react';
 import Sidebar from './components/Sidebar.jsx';
+import TabBar from './components/TabBar.jsx';
 import DashboardPage from './pages/DashboardPage.jsx';
 import MonitorsPage from './pages/MonitorsPage.jsx';
 import MonitorDetailPage from './pages/MonitorDetailPage.jsx';
@@ -8,6 +9,7 @@ import DomainsPage from './pages/DomainsPage.jsx';
 import ServersPage from './pages/ServersPage.jsx';
 import InventoryPage from './pages/InventoryPage.jsx';
 import ProvidersPage from './pages/ProvidersPage.jsx';
+import CategoriesPage from './pages/CategoriesPage.jsx';
 import IntegrationPage from './pages/IntegrationPage.jsx';
 import GithubPage from './pages/GithubPage.jsx';
 import NotesPage from './pages/NotesPage.jsx';
@@ -16,6 +18,7 @@ import MonitorModal from './components/MonitorModal.jsx';
 import DomainModal from './components/DomainModal.jsx';
 import ServerModal from './components/ServerModal.jsx';
 import ProviderModal from './components/ProviderModal.jsx';
+import CategoryModal from './components/CategoryModal.jsx';
 import ConfirmModal from './components/ConfirmModal.jsx';
 import Toasts from './components/Toasts.jsx';
 import { api } from './lib/api.js';
@@ -65,7 +68,7 @@ const VIEW_META = {
   },
   notes: {
     title: 'Notlar',
-    subtitle: 'kişisel notlarını ve hatırlatmalarını tut',
+    subtitle: 'kişisel notlarını ve kategorilerini yönet',
     addType: 'note',
     addLabel: 'Yeni Not',
   },
@@ -75,6 +78,8 @@ export default function App() {
   const [view, setView] = useState('dashboard');
   // Envanter sayfasının aktif sekmesi (domains | servers)
   const [inventoryTab, setInventoryTab] = useState('domains');
+  // Notlar sayfasının aktif sekmesi (notes | categories)
+  const [notesTab, setNotesTab] = useState('notes');
   const [apiOnline, setApiOnline] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [checkingIds, setCheckingIds] = useState(() => new Set());
@@ -84,8 +89,12 @@ export default function App() {
   const [domainsList, setDomainsList] = useState(EMPTY_LIST);
   const [serversList, setServersList] = useState(EMPTY_LIST);
   const [providersList, setProvidersList] = useState(EMPTY_LIST);
+  const [categoriesList, setCategoriesList] = useState(EMPTY_LIST);
   const [notesList, setNotesList] = useState(EMPTY_LIST);
   const [listLoading, setListLoading] = useState(true);
+
+  // Notlar sayfasının aktif kategori filtresi (null = tümü)
+  const [notesCategoryFilter, setNotesCategoryFilter] = useState(null);
 
   // Modallardaki bağlantı seçenekleri
   const [refOptions, setRefOptions] = useState({ domains: [], servers: [], providers: [] });
@@ -136,7 +145,11 @@ export default function App() {
     domains: { load: api.listDomains, set: setDomainsList },
     servers: { load: api.listServers, set: setServersList },
     providers: { load: api.listProviders, set: setProvidersList },
-    notes: { load: api.listNotes, set: setNotesList },
+    categories: { load: api.listCategories, set: setCategoriesList },
+    notes: {
+      load: (page, limit) => api.listNotes(page, limit, notesCategoryFilter),
+      set: setNotesList,
+    },
   };
 
   const loadOverview = useCallback(
@@ -207,10 +220,30 @@ export default function App() {
       loadIntegration(integrationTab);
     } else if (view === 'inventory') {
       loadList(inventoryTab, 1, DEFAULT_LIMIT);
+    } else if (view === 'notes') {
+      if (notesTab === 'categories') {
+        loadList('categories', 1, DEFAULT_LIMIT);
+      } else {
+        loadList('notes', 1, DEFAULT_LIMIT);
+        // filtre çipleri için kategoriler (modal seçenekleriyle aynı kaynak)
+        api
+          .listCategories(1, 100)
+          .then((r) => setRefOptions((p) => ({ ...p, categories: r.data })))
+          .catch(() => {});
+      }
     } else {
       loadList(view, 1, DEFAULT_LIMIT);
     }
-  }, [view, integrationTab, inventoryTab, loadOverview, loadList, loadIntegration]);
+  }, [view, integrationTab, inventoryTab, notesTab, loadOverview, loadList, loadIntegration]);
+
+  // Notlar sayfasında kategori filtresi değişince listeyi yeniden yükle
+  useEffect(() => {
+    if (view === 'notes') {
+      setListLoading(true);
+      loadList('notes', 1, DEFAULT_LIMIT);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [notesCategoryFilter]);
 
   // Otomatik yenileme: aktif görünümün verisi (entegrasyon formunu bozmamak için hariç)
   useEffect(() => {
@@ -220,12 +253,18 @@ export default function App() {
       } else if (view === 'integrations' || view === 'github' || view === 'monitor-detail') {
         return;
       } else {
-        const kind = view === 'inventory' ? inventoryTab : view;
+        const kind =
+          view === 'inventory'
+            ? inventoryTab
+            : view === 'notes' && notesTab === 'categories'
+              ? 'categories'
+              : view;
         const list = {
           monitors: monitorsList,
           domains: domainsList,
           servers: serversList,
           providers: providersList,
+          categories: categoriesList,
           notes: notesList,
         }[kind];
         if (list) loadList(kind, list.page, list.limit, { silent: true });
@@ -248,12 +287,18 @@ export default function App() {
       loadIntegration(integrationTab);
       return;
     }
-    const kind = view === 'inventory' ? inventoryTab : view;
+    const kind =
+      view === 'inventory'
+        ? inventoryTab
+        : view === 'notes' && notesTab === 'categories'
+          ? 'categories'
+          : view;
     const list = {
       monitors: monitorsList,
       domains: domainsList,
       servers: serversList,
       providers: providersList,
+      categories: categoriesList,
       notes: notesList,
     }[kind];
     loadList(kind, list.page, list.limit);
@@ -276,6 +321,9 @@ export default function App() {
       } else if (type === 'domain' || type === 'server') {
         const providers = await api.listProviders(1, 100);
         setRefOptions((prev) => ({ ...prev, providers: providers.data }));
+      } else if (type === 'note') {
+        const categories = await api.listCategories(1, 100);
+        setRefOptions((prev) => ({ ...prev, categories: categories.data }));
       }
     } catch {
       // seçenekler yüklenemezse boş select ile devam
@@ -379,6 +427,7 @@ export default function App() {
       domain: { create: api.createDomain, update: api.updateDomain, label: 'Domain' },
       server: { create: api.createServer, update: api.updateServer, label: 'Sunucu' },
       provider: { create: api.createProvider, update: api.updateProvider, label: 'Sağlayıcı' },
+      category: { create: api.createCategory, update: api.updateCategory, label: 'Kategori' },
       note: { create: api.createNote, update: api.updateNote, label: 'Not' },
     };
     try {
@@ -436,6 +485,7 @@ export default function App() {
       domain: api.deleteDomain,
       server: api.deleteServer,
       provider: api.deleteProvider,
+      category: api.deleteCategory,
       note: api.deleteNote,
     };
     try {
@@ -460,7 +510,13 @@ export default function App() {
           addType: inventoryTab === 'domains' ? 'domain' : 'server',
           addLabel: inventoryTab === 'domains' ? 'Yeni Domain' : 'Yeni Sunucu',
         }
-      : VIEW_META[view];
+      : view === 'notes' && notesTab === 'categories'
+        ? {
+            ...VIEW_META.notes,
+            addType: 'category',
+            addLabel: 'Yeni Kategori',
+          }
+        : VIEW_META[view];
 
   return (
     <div className="flex min-h-screen bg-zinc-950 text-zinc-100">
@@ -574,16 +630,43 @@ export default function App() {
           )}
 
           {view === 'notes' && (
-            <NotesPage
-              list={notesList}
-              loading={listLoading}
-              onPageChange={(page) => loadList('notes', page, notesList.limit)}
-              onLimitChange={(limit) => loadList('notes', 1, limit)}
-              onEdit={(item) => openEditModal('note', item)}
-              onDelete={(item) => setDeleteTarget({ type: 'note', item })}
-              onTogglePin={handleTogglePin}
-              onAdd={() => openAddModal('note')}
-            />
+            <div className="flex flex-col gap-5">
+              <TabBar
+                ariaLabel="Notlar sekmeleri"
+                active={notesTab}
+                onChange={setNotesTab}
+                totals={{ notes: notesList.total, categories: categoriesList.total }}
+                tabs={[
+                  { id: 'notes', label: 'Notlar', icon: StickyNote },
+                  { id: 'categories', label: 'Kategoriler', icon: Tag },
+                ]}
+              />
+              {notesTab === 'notes' ? (
+                <NotesPage
+                  list={notesList}
+                  loading={listLoading}
+                  categories={refOptions.categories}
+                  activeCategory={notesCategoryFilter}
+                  onCategoryChange={setNotesCategoryFilter}
+                  onPageChange={(page) => loadList('notes', page, notesList.limit)}
+                  onLimitChange={(limit) => loadList('notes', 1, limit)}
+                  onEdit={(item) => openEditModal('note', item)}
+                  onDelete={(item) => setDeleteTarget({ type: 'note', item })}
+                  onTogglePin={handleTogglePin}
+                  onAdd={() => openAddModal('note')}
+                />
+              ) : (
+                <CategoriesPage
+                  list={categoriesList}
+                  loading={listLoading}
+                  onPageChange={(page) => loadList('categories', page, categoriesList.limit)}
+                  onLimitChange={(limit) => loadList('categories', 1, limit)}
+                  onEdit={(item) => openEditModal('category', item)}
+                  onDelete={(item) => setDeleteTarget({ type: 'category', item })}
+                  onAdd={() => openAddModal('category')}
+                />
+              )}
+            </div>
           )}
 
           {view === 'github' && <GithubPage />}
@@ -652,8 +735,18 @@ export default function App() {
         note={modal.item}
         saving={saving}
         error={formError}
+        categoryOptions={refOptions.categories}
         onSave={handleNoteSave}
         onAttachmentDeleted={() => loadList('notes', notesList.page, notesList.limit, { silent: true })}
+        onClose={() => setModal({ open: false, type: null, item: null })}
+      />
+
+      <CategoryModal
+        open={modal.open && modal.type === 'category'}
+        category={modal.item}
+        saving={saving}
+        error={formError}
+        onSave={handleSave}
         onClose={() => setModal({ open: false, type: null, item: null })}
       />
 

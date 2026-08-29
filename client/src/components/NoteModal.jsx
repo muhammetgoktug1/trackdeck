@@ -3,7 +3,7 @@ import { X, Loader2, Plus, Trash2, Link2, Paperclip, FileUp } from 'lucide-react
 import { formatFileSize } from '../lib/format.js';
 import { api } from '../lib/api.js';
 
-const EMPTY_FORM = { title: '', content: '', pinned: false, links: [] };
+const EMPTY_FORM = { title: '', content: '', pinned: false, category: '', links: [] };
 
 const inputClass =
   'w-full rounded-xl border border-zinc-700/70 bg-zinc-800/50 px-3.5 py-2.5 text-sm text-zinc-100 placeholder-zinc-400 outline-none transition-colors focus:border-indigo-500/60 focus:ring-2 focus:ring-indigo-500/20';
@@ -20,7 +20,7 @@ function isValidHttpUrl(value) {
   }
 }
 
-export default function NoteModal({ open, note, saving, error, onSave, onClose, onAttachmentDeleted }) {
+export default function NoteModal({ open, note, saving, error, categoryOptions = [], onSave, onClose, onAttachmentDeleted }) {
   const [form, setForm] = useState(EMPTY_FORM);
   const [linkError, setLinkError] = useState('');
   const [attachments, setAttachments] = useState([]);
@@ -35,6 +35,7 @@ export default function NoteModal({ open, note, saving, error, onSave, onClose, 
               title: note.title,
               content: note.content ?? '',
               pinned: note.pinned ?? false,
+              category: note.category?.id ?? '',
               links: (note.links ?? []).map((l) => ({ url: l.url, label: l.label ?? '' })),
             }
           : EMPTY_FORM
@@ -100,6 +101,7 @@ export default function NoteModal({ open, note, saving, error, onSave, onClose, 
         ...form,
         title: form.title.trim(),
         content: form.content.trim(),
+        category: form.category || null,
         links: form.links.filter((l) => l.url.trim() !== ''),
       },
       pendingFiles
@@ -154,6 +156,29 @@ export default function NoteModal({ open, note, saving, error, onSave, onClose, 
               placeholder="Açıklamalar, hatırlatmalar, komutlar..."
               maxLength={20000}
             />
+          </div>
+
+          {/* Kategori */}
+          <div>
+            <label className={labelClass} htmlFor="n-category">
+              Kategori <span className="font-normal normal-case text-zinc-600">(opsiyonel)</span>
+            </label>
+            <select
+              id="n-category"
+              className={inputClass}
+              value={form.category}
+              onChange={(e) => setForm((f) => ({ ...f, category: e.target.value }))}
+            >
+              <option value="">— Yok —</option>
+              {categoryOptions.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name}
+                </option>
+              ))}
+            </select>
+            <p className="mt-1.5 text-[11px] text-zinc-600">
+              Tanımlar "İçerik Tanımlamaları → Kategoriler"den yönetilir
+            </p>
           </div>
 
           {/* Bağlantılar */}

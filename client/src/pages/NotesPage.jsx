@@ -15,10 +15,24 @@ function NoteCard({ note, onEdit, onDelete, onTogglePin }) {
       }`}
     >
       <div className="flex items-start justify-between gap-3">
-        <h3 className="min-w-0 break-words text-[15px] font-semibold leading-snug text-zinc-100">
-          {note.title}
-        </h3>
-        {note.pinned && <Pin className="mt-0.5 h-4 w-4 shrink-0 fill-amber-400 text-amber-400" />}
+        <div className="flex min-w-0 flex-wrap items-center gap-1.5">
+          <h3 className="min-w-0 break-words text-[15px] font-semibold leading-snug text-zinc-100">
+            {note.title}
+          </h3>
+          {note.category && (
+            <span
+              className="shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold"
+              style={{
+                backgroundColor: `${note.category.color ?? '#64748b'}22`,
+                color: note.category.color ?? '#94a3b8',
+                boxShadow: `inset 0 0 0 1px ${note.category.color ?? '#64748b'}55`,
+              }}
+            >
+              {note.category.name}
+            </span>
+          )}
+          {note.pinned && <Pin className="mt-0.5 h-4 w-4 shrink-0 fill-amber-400 text-amber-400" />}
+        </div>
       </div>
 
       {note.content ? (
@@ -107,6 +121,9 @@ function NoteCard({ note, onEdit, onDelete, onTogglePin }) {
 export default function NotesPage({
   list,
   loading,
+  categories = [],
+  activeCategory = null,
+  onCategoryChange,
   onEdit,
   onDelete,
   onTogglePin,
@@ -126,6 +143,40 @@ export default function NotesPage({
             </span>
           )}
         </div>
+        {categories.length > 0 && (
+          <div className="flex flex-wrap items-center justify-end gap-1.5">
+            <button
+              type="button"
+              onClick={() => onCategoryChange(null)}
+              className={`rounded-full px-3 py-1 text-[11px] font-semibold ring-1 transition-colors ${
+                activeCategory === null
+                  ? 'bg-indigo-500/15 text-indigo-300 ring-indigo-500/40'
+                  : 'bg-zinc-800/50 text-zinc-500 ring-zinc-700/60 hover:text-zinc-300'
+              }`}
+            >
+              Tümü
+            </button>
+            {categories.map((c) => (
+              <button
+                key={c.id}
+                type="button"
+                onClick={() => onCategoryChange(activeCategory === c.id ? null : c.id)}
+                className="rounded-full px-3 py-1 text-[11px] font-semibold ring-1 transition-colors"
+                style={
+                  activeCategory === c.id
+                    ? {
+                        backgroundColor: `${c.color}25`,
+                        color: c.color,
+                        boxShadow: `inset 0 0 0 1px ${c.color}80`,
+                      }
+                    : { backgroundColor: 'rgba(39,39,42,0.5)', color: '#a1a1aa' }
+                }
+              >
+                {c.name}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
       {loading ? (

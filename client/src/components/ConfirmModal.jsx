@@ -18,6 +18,10 @@ const TYPE_META = {
     title: 'Sağlayıcıyı sil',
     note: 'Bağlı domain ve sunuculardaki sağlayıcı ilişkisi de kaldırılır.',
   },
+  category: {
+    title: 'Kategoriyi sil',
+    note: 'Bu kategorideki notların kategori bağlantısı da kaldırılır (notlar silinmez).',
+  },
   note: {
     title: 'Notu sil',
     note: '',

@@ -8,6 +8,7 @@ import monitorRoutes from './routes/monitors.js';
 import domainRoutes from './routes/domains.js';
 import serverRoutes from './routes/servers.js';
 import providerRoutes from './routes/providers.js';
+import categoryRoutes from './routes/categories.js';
 import integrationRoutes from './routes/integrations.js';
 import githubRoutes from './routes/github.js';
 import noteRoutes from './routes/notes.js';
@@ -133,6 +134,7 @@ app.use('/api/monitors', monitorRoutes);
 app.use('/api/domains', domainRoutes);
 app.use('/api/servers', serverRoutes);
 app.use('/api/providers', providerRoutes);
+app.use('/api/categories', categoryRoutes);
 app.use('/api/integrations', integrationRoutes);
 app.use('/api/github', githubRoutes);
 app.use('/api/notes', noteRoutes);
@@ -150,7 +152,7 @@ app.use((err, _req, res, _next) => {
   res.status(err.status || 500).json({ message: err.message || 'Sunucu hatası' });
 });
 
-const PORT = Number(process.env.PORT) || 4000;
+const PORT = Number(process.env.PORT) || 40010;
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/kisisel-proje';
 
 async function start() {

@@ -16,7 +16,8 @@ const NAV_PAGES = [
   { id: 'notes', icon: StickyNote, label: 'Notlar' },
 ];
 
-// Tekrar kullanılan tanımlar (bugün sağlayıcılar; kategoriler vb. eklenebilir)
+// Tekrar kullanılan tanımlar (bugün sağlayıcılar; not kategorileri Notlar
+// sayfasının sekmelerinde yönetilir)
 const NAV_DEFINITIONS = [{ id: 'providers', icon: Building2, label: 'Sağlayıcılar' }];
 
 // Dış servis bağlantıları (kanallar sayfa içinde sekmeler halinde)

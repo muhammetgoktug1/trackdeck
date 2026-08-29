@@ -23,10 +23,10 @@ services:
     build: ./server
     restart: unless-stopped
     environment:
-      PORT: 4000
+      PORT: 40010
       MONGODB_URI: mongodb://mongo:27017/kisisel-proje
     ports:
-      - "4000:4000"
+      - "40010:40010"
     volumes:
       - ./server:/app
       - /app/node_modules
@@ -35,7 +35,7 @@ services:
       mongo:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:4000/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:40010/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
       interval: 15s
       timeout: 5s
       retries: 5
@@ -46,11 +46,11 @@ services:
     restart: unless-stopped
     environment:
       # Konteyner içinde API'ye hizmet adı üzerinden ulaşılır
-      API_PROXY_TARGET: http://api:4000
+      API_PROXY_TARGET: http://api:40010
       # VirtioFS dosya olaylarını kaçırdığı için HMR için polling modu
       USE_POLLING: '1'
     ports:
-      - "5173:5173"
+      - "40011:40011"
     volumes:
       - ./client:/app
       - /app/node_modules

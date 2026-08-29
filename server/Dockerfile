@@ -7,7 +7,7 @@ WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm ci
 
-EXPOSE 4000
+EXPOSE 40010
 
 # --watch: bind-mount edilen kaynak dosyaları değiştiğinde otomatik yeniden başlar
 CMD ["node", "--watch", "src/index.js"]

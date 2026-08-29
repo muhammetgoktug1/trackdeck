@@ -4,6 +4,8 @@ import fs from 'node:fs';
 import crypto from 'node:crypto';
 import multer from 'multer';
 import Note from '../models/Note.js';
+import NoteCategory from '../models/NoteCategory.js';
+import { resolveRef, ID_RE } from '../lib/refs.js';
 
 const router = Router();
 
@@ -67,21 +69,29 @@ function deleteAttachmentFiles(note) {
   }
 }
 
-// Notları sayfalı listele (sabitlenenler üstte, sonra en yeni)
+// Notları sayfalı listele (sabitlenenler üstte, sonra en yeni; opsiyonel kategori filtresi)
 router.get('/', async (req, res) => {
   const page = Math.max(1, parseInt(req.query.page, 10) || 1);
   const limit = Math.min(100, Math.max(1, parseInt(req.query.limit, 10) || 20));
+  const query = {};
+  if (req.query.category && ID_RE.test(req.query.category)) {
+    query.category = req.query.category;
+  }
 
   const [data, total] = await Promise.all([
-    Note.find().sort({ pinned: -1, createdAt: -1 }).skip((page - 1) * limit).limit(limit),
-    Note.countDocuments(),
+    Note.find(query)
+      .sort({ pinned: -1, createdAt: -1 })
+      .skip((page - 1) * limit)
+      .limit(limit)
+      .populate('category', 'name color'),
+    Note.countDocuments(query),
   ]);
   res.json({ data, total, page, limit, totalPages: Math.max(1, Math.ceil(total / limit)) });
 });
 
 // Yeni not
 router.post('/', async (req, res) => {
-  const { title, content, pinned, links } = req.body ?? {};
+  const { title, content, pinned, links, category } = req.body ?? {};
 
   if (!title || !title.trim()) {
     return res.status(400).json({ message: 'Not başlığı zorunludur' });
@@ -90,13 +100,18 @@ router.post('/', async (req, res) => {
   const linksResult = parseLinks(links);
   if (linksResult.error) return res.status(400).json({ message: linksResult.error });
 
+  const categoryRef = await resolveRef(NoteCategory, category, 'kategori');
+  if (categoryRef.error) return res.status(400).json({ message: categoryRef.error });
+
   try {
     const note = await Note.create({
       title: title.trim(),
       content: (content ?? '').toString().trim(),
       pinned: Boolean(pinned),
+      category: categoryRef.value,
       links: linksResult.value ?? [],
     });
+    await note.populate('category', 'name color');
     res.status(201).json(note);
   } catch (err) {
     if (err.name === 'ValidationError') {
@@ -114,13 +129,19 @@ router.patch('/:id', async (req, res) => {
   const note = await Note.findById(id);
   if (!note) return res.status(404).json({ message: 'Not bulunamadı' });
 
-  const { title, content, pinned, links } = req.body ?? {};
+  const { title, content, pinned, links, category } = req.body ?? {};
 
   if (title !== undefined) {
     if (!title || !title.trim()) {
       return res.status(400).json({ message: 'Not başlığı boş olamaz' });
     }
     note.title = title.trim();
+  }
+  if (category !== undefined) {
+    // null/'' kategoriyi temizler
+    const categoryRef = await resolveRef(NoteCategory, category, 'kategori');
+    if (categoryRef.error) return res.status(400).json({ message: categoryRef.error });
+    note.category = categoryRef.value;
   }
   if (content !== undefined) note.content = content.toString().trim();
   if (pinned !== undefined) note.pinned = Boolean(pinned);
@@ -133,6 +154,7 @@ router.patch('/:id', async (req, res) => {
 
   try {
     await note.save();
+    await note.populate('category', 'name color');
     res.json(note);
   } catch (err) {
     if (err.name === 'ValidationError') {

@@ -7,8 +7,8 @@ Aktif sitelerinin uptime takibi + kişisel notlar için lokal yönetim paneli.
 
 ```
 kisisel-takip/
-├── server/   → Express + MongoDB API (port 4000)
-└── client/   → React + Vite + Tailwind paneli (port 5173)
+├── server/   → Express + MongoDB API (port 40010)
+└── client/   → React + Vite + Tailwind paneli (port 40011)
 ```
 
 **Veritabanı:** `kisisel-proje` (lokal MongoDB, `server/.env` üzerinden ayarlanır)
@@ -25,8 +25,8 @@ npm run install:all
 npm run dev
 ```
 
-- Panel: http://localhost:5173
-- API: http://localhost:4000
+- Panel: http://localhost:40011
+- API: http://localhost:40010
 
 Ayrı ayrı çalıştırmak istersen: `server/` ve `client/` içinde ayrı ayrı `npm run dev`.
 
@@ -47,8 +47,8 @@ npm run docker:logs
 npm run docker:down
 ```
 
-- Panel: http://localhost:5173
-- API: http://localhost:4000
+- Panel: http://localhost:40011
+- API: http://localhost:40010
 - MongoDB konteyner içinde kalır; hosttan (Compass) erişmek istersen
   `docker-compose.yml` içindeki `mongo` ports satırının yorumunu aç.
 - `docker compose down -v` volume'u da siler (tüm veri gider).

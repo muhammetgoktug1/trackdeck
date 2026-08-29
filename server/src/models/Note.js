@@ -8,6 +8,12 @@ const noteSchema = new mongoose.Schema(
       trim: true,
       maxlength: [200, 'Not başlığı en fazla 200 karakter olabilir'],
     },
+    category: {
+      // opsiyonel bağlantı — İçerik Tanımlamaları → Kategoriler
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'NoteCategory',
+      default: null,
+    },
     content: {
       type: String,
       trim: true,
