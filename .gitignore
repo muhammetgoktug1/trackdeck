@@ -19,3 +19,7 @@ server/uploads/
 *.log
 .idea/
 .vscode/
+
+# AI araç oturum dosyaları
+.zcode/
+.mimosa/
