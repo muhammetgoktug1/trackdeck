@@ -23,7 +23,7 @@ const checkLogSchema = new mongoose.Schema(
       default: null,
     },
     reason: {
-      // down sebebi: "HTTP 503", "Zaman aşımı (10 sn)", DNS hatası vb.
+      // down sebebi: "HTTP 503", "Zaman aşımı (60 sn)", DNS hatası vb.
       type: String,
       trim: true,
       default: '',

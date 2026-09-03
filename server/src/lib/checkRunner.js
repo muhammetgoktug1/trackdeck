@@ -1,26 +1,26 @@
 import CheckLog from '../models/CheckLog.js';
 import { notifyUptimeChange } from './notify.js';
 
-const CHECK_TIMEOUT_MS = 10_000;
+// Cömert zaman aşımı: monitörün kendi internetindeki geçici yavaşlıklar
+// yanlış down ölçümü üretmesin.
+const CHECK_TIMEOUT_MS = 60_000;
+// Bir kontrolün "down" işaretlenmesi için tüm denemelerin başarısız olması gerekir;
+// tek seferlik ağ dalgalanmaları yanlış kesinti bildirimi üretmesin.
+const MAX_ATTEMPTS = 3;
+const RETRY_DELAY_MS = 3_000;
 
 // Aynı monitörün paralel kontrolünü engeller (manuel buton + scheduler çakışması)
 const runningIds = new Set();
 
-// Tek bir ölçüm yapar: monitörü günceller ve geçmişe CheckLog yazar.
-// Monitör zaten kontrol ediliyorsa mevcut haliyle döner (10 sn_timeout içinde biter).
-export async function runCheck(monitor) {
-  const key = monitor.id ?? String(monitor._id);
-  if (runningIds.has(key)) return monitor;
-  runningIds.add(key);
+function delay(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
 
-  const prevStatus = monitor.status;
+// Tek bir HTTP denemesi yapar; kendi timeout'uyla ölçer ve {ok, statusCode, reason, responseTime} döner.
+async function attemptFetch(monitor) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), CHECK_TIMEOUT_MS);
   const startedAt = Date.now();
-
-  let status;
-  let statusCode = null;
-  let reason = '';
 
   try {
     const response = await fetch(monitor.url, {
@@ -28,16 +28,61 @@ export async function runCheck(monitor) {
       redirect: 'follow',
       signal: controller.signal,
     });
-    statusCode = response.status;
-    status = response.ok ? 'up' : 'down';
-    if (!response.ok) reason = `HTTP ${response.status}`;
+    if (response.ok) {
+      return { ok: true, statusCode: response.status, reason: '', responseTime: Date.now() - startedAt };
+    }
+    return {
+      ok: false,
+      statusCode: response.status,
+      reason: `HTTP ${response.status}`,
+      responseTime: Date.now() - startedAt,
+    };
   } catch (err) {
+    return {
+      ok: false,
+      statusCode: null,
+      reason: err.name === 'AbortError' ? `Zaman aşımı (${CHECK_TIMEOUT_MS / 1000} sn)` : err.message,
+      responseTime: Date.now() - startedAt,
+    };
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+// Tek bir ölçüm yapar: monitörü günceller ve geçmişe CheckLog yazar.
+// Down kararı en fazla MAX_ATTEMPTS denemeyle onaylanır; ilk başarılı deneme "up" sayar.
+// Monitör zaten kontrol ediliyorsa mevcut haliyle döner.
+export async function runCheck(monitor) {
+  const key = monitor.id ?? String(monitor._id);
+  if (runningIds.has(key)) return monitor;
+  runningIds.add(key);
+
+  const prevStatus = monitor.status;
+
+  let status;
+  let statusCode = null;
+  let reason = '';
+  let responseTime = null;
+
+  for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+    const result = await attemptFetch(monitor);
+    statusCode = result.statusCode;
+    responseTime = result.responseTime;
+
+    if (result.ok) {
+      status = 'up';
+      reason = '';
+      break;
+    }
+
+    reason = result.reason;
     status = 'down';
-    reason = err.name === 'AbortError' ? `Zaman aşımı (${CHECK_TIMEOUT_MS / 1000} sn)` : err.message;
+    if (attempt < MAX_ATTEMPTS) await delay(RETRY_DELAY_MS);
   }
 
-  const responseTime = Date.now() - startedAt;
-  clearTimeout(timer);
+  if (status === 'down') {
+    reason = `${MAX_ATTEMPTS}/${MAX_ATTEMPTS} deneme başarısız — son hata: ${reason}`;
+  }
 
   monitor.lastResponseTime = responseTime;
   monitor.lastStatusCode = statusCode;

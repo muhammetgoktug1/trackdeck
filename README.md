@@ -218,6 +218,11 @@ yazılır ve durum değişikliklerinde (up→down / down→up) bildirim tetiklen
 monitöre çift paralel ölçüm engellenir. (API kapalıyken tarama olmaz —
 `npm run dev` çalışırken geçerlidir.)
 
+Bir ölçümün `down` işaretlenmesi için **3 denemenin de başarısız olması**
+gerekir (deneme başına 60 sn zaman aşımı, denemeler arası 3 sn bekleme);
+denemelerden herhangi biri başarılı olursa durum `up` olur. Böylece tek
+seferlik ağ dalgalanmaları yanlış kesinti bildirimi üretmez.
+
 ## Sıradaki adımlar (fikir)
 
 - Kontrol geçmişi ve uptime % grafiği
