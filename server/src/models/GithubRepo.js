@@ -28,6 +28,8 @@ const githubRepoSchema = new mongoose.Schema(
     // repo eklenirkenki son push zamanı (bilgi amaçlı)
     pushedAt: { type: Date, default: null },
     enabled: { type: Boolean, default: true },
+    // panelde sürükle-bırak sırası; sıralanmamış repolar createdAt sırasını izler
+    position: { type: Number, default: null },
 
     // Bildirim tarayıcısının durumu: son görülen run/issue id'leri ve
     // release zamanı — süreç yeniden başlasa da çift bildirimi önler.

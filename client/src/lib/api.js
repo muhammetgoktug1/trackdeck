@@ -56,6 +56,24 @@ export const api = {
     request(`/providers/${id}`, { method: 'PATCH', body: JSON.stringify(body) }),
   deleteProvider: (id) => request(`/providers/${id}`, { method: 'DELETE' }),
 
+  listCustomers: (page = 1, limit = 20, { q = '' } = {}) =>
+    request(
+      `/customers?page=${page}&limit=${limit}${q ? `&q=${encodeURIComponent(q)}` : ''}`
+    ),
+  createCustomer: (body) =>
+    request('/customers', { method: 'POST', body: JSON.stringify(body) }),
+  updateCustomer: (id, body) =>
+    request(`/customers/${id}`, { method: 'PATCH', body: JSON.stringify(body) }),
+  deleteCustomer: (id) => request(`/customers/${id}`, { method: 'DELETE' }),
+
+  listCompanies: (page = 1, limit = 20) =>
+    request(`/companies?page=${page}&limit=${limit}`),
+  createCompany: (body) =>
+    request('/companies', { method: 'POST', body: JSON.stringify(body) }),
+  updateCompany: (id, body) =>
+    request(`/companies/${id}`, { method: 'PATCH', body: JSON.stringify(body) }),
+  deleteCompany: (id) => request(`/companies/${id}`, { method: 'DELETE' }),
+
   getIntegration: (type) => request(`/integrations/${type}`),
   saveIntegration: (type, body) =>
     request(`/integrations/${type}`, { method: 'PUT', body: JSON.stringify(body) }),
@@ -68,6 +86,9 @@ export const api = {
   addGithubRepo: (fullName) =>
     request('/github/repos', { method: 'POST', body: JSON.stringify({ fullName }) }),
   deleteGithubRepo: (id) => request(`/github/repos/${id}`, { method: 'DELETE' }),
+  reorderGithubRepos: (ids) =>
+    request('/github/repos/order', { method: 'PUT', body: JSON.stringify({ ids }) }),
+  getGithubRepoStats: () => request('/github/repos/stats'),
   githubTabData: (id, tab, limit = 15) =>
     request(`/github/repos/${id}/${tab}?limit=${limit}`),
 

@@ -7,6 +7,7 @@ import {
   Building2,
   Plug,
   KeyRound,
+  Users,
 } from 'lucide-react';
 
 const NAV_PAGES = [
@@ -14,6 +15,7 @@ const NAV_PAGES = [
   { id: 'monitors', icon: Activity, label: 'Uptime Monitörleri' },
   { id: 'inventory', icon: Boxes, label: 'Envanter' },
   { id: 'github', icon: Github, label: 'GitHub' },
+  { id: 'customers', icon: Users, label: 'Müşteriler' },
   { id: 'notes', icon: StickyNote, label: 'Notlar' },
   { id: 'credentials', icon: KeyRound, label: 'Şifreler' },
 ];

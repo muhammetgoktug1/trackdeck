@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import GithubRepo from '../models/GithubRepo.js';
 import GithubSetting from '../models/GithubSetting.js';
-import { ghRequest, clearGithubCache } from '../lib/github.js';
+import { ghRequest, ghCount, clearGithubCache } from '../lib/github.js';
 
 const router = Router();
 
@@ -165,7 +165,9 @@ router.put('/settings', async (req, res) => {
 // ---- İzlenen repolar ----
 
 router.get('/repos', async (_req, res) => {
-  const repos = await GithubRepo.find().sort({ createdAt: 1 });
+  // sıralanmış repolar önce; position'ı olmayanlar eklenme sırasına göre sonraya düşmez,
+  // null değerleri sayılardan önce geldiği için sıralanmamış repolar listede önde kalır
+  const repos = await GithubRepo.find().sort({ position: 1, createdAt: 1 });
   res.json({ data: repos });
 });
 
@@ -185,6 +187,9 @@ router.post('/repos', async (req, res) => {
     return res.status(400).json({ message: err.message });
   }
 
+  // yeni repo her zaman listenin sonuna eklenir
+  const lastSorted = await GithubRepo.findOne().sort({ position: -1 });
+
   const repo = await GithubRepo.create({
     owner: gh.owner?.login ?? fullName.split('/')[0],
     name: gh.name,
@@ -194,6 +199,7 @@ router.post('/repos', async (req, res) => {
     defaultBranch: gh.default_branch,
     htmlUrl: gh.html_url,
     pushedAt: gh.pushed_at,
+    position: (lastSorted?.position ?? -1) + 1,
   });
   res.status(201).json(repo);
 });
@@ -203,6 +209,74 @@ router.delete('/repos/:id', async (req, res) => {
   if (!repo) return;
   await GithubRepo.findByIdAndDelete(repo.id);
   res.json({ message: 'Repo takipten çıkarıldı', id: repo.id });
+});
+
+// Paneldeki sürükle-bırak sıralamasını kaydeder; dizi sırası position olur.
+router.put('/repos/order', async (req, res) => {
+  const ids = Array.isArray(req.body?.ids) ? req.body.ids : null;
+  if (!ids?.length || !ids.every((id) => /^[0-9a-fA-F]{24}$/.test(id))) {
+    return res.status(400).json({ message: 'Geçerli bir ids dizisi (repo kimlikleri) gerekli' });
+  }
+  const ops = ids.map((id, index) => ({
+    updateOne: { filter: { _id: id }, update: { $set: { position: index } } },
+  }));
+  const result = await GithubRepo.bulkWrite(ops, { ordered: false });
+  res.json({ message: 'Sıralama kaydedildi', updated: result.modifiedCount });
+});
+
+// Kart ızgarası için tüm repoların özet istatistikleri. Bir reponun verisi
+// alınamazsa (rate limit, özel repo vs.) hata o repoya gömülür, liste bozulmaz.
+router.get('/repos/stats', async (_req, res) => {
+  const repos = await GithubRepo.find().sort({ position: 1, createdAt: 1 });
+  const token = await getToken();
+
+  const data = await Promise.all(
+    repos.map(async (repo) => {
+      const base = {
+        id: repo.id,
+        fullName: repo.fullName,
+        name: repo.name,
+        owner: repo.owner,
+        description: repo.description ?? '',
+        private: repo.private,
+        htmlUrl: repo.htmlUrl,
+      };
+      try {
+        const full = `${encodeURIComponent(repo.owner)}/${encodeURIComponent(repo.name)}`;
+        const [meta, commits, openPulls] = await Promise.all([
+          ghRequest(`/repos/${full}`, { token }),
+          ghCount(`/repos/${full}/commits?per_page=1`, { token }),
+          ghCount(`/repos/${full}/pulls?state=open&per_page=1`, { token }),
+        ]);
+        // GitHub'ın open_issues sayacı PR'ları da içerir; gerçek issue = fark
+        return {
+          ...base,
+          language: meta.language,
+          pushedAt: meta.pushed_at,
+          stars: meta.stargazers_count ?? 0,
+          forks: meta.forks_count ?? 0,
+          openPulls,
+          openIssues: Math.max(0, (meta.open_issues_count ?? 0) - openPulls),
+          commits,
+          error: null,
+        };
+      } catch (err) {
+        return {
+          ...base,
+          language: null,
+          pushedAt: repo.pushedAt,
+          stars: 0,
+          forks: 0,
+          openPulls: 0,
+          openIssues: 0,
+          commits: 0,
+          error: err.message,
+        };
+      }
+    })
+  );
+
+  res.json({ data });
 });
 
 // ---- Sekme verileri ----

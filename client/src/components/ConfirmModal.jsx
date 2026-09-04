@@ -38,6 +38,14 @@ const TYPE_META = {
     title: 'Repoyu takipten çıkar',
     note: 'Yalnızca panelden kaldırılır; GitHub üzerindeki repo silinmez.',
   },
+  customer: {
+    title: 'Müşteriyi sil',
+    note: '',
+  },
+  company: {
+    title: 'Şirketi sil',
+    note: 'Bağlı müşterilerin şirket bağlantısı kaldırılır (müşteriler silinmez).',
+  },
 };
 
 export default function ConfirmModal({ target, deleting, onClose, onConfirm }) {

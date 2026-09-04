@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Plus, RefreshCw, StickyNote, Tag, KeyRound } from 'lucide-react';
+import { Plus, RefreshCw, StickyNote, Tag, KeyRound, UserRound, Building2 } from 'lucide-react';
 import Sidebar from './components/Sidebar.jsx';
 import TabBar from './components/TabBar.jsx';
 import DashboardPage from './pages/DashboardPage.jsx';
@@ -14,6 +14,8 @@ import IntegrationPage from './pages/IntegrationPage.jsx';
 import GithubPage from './pages/GithubPage.jsx';
 import NotesPage from './pages/NotesPage.jsx';
 import CredentialsPage from './pages/CredentialsPage.jsx';
+import CustomersPage from './pages/CustomersPage.jsx';
+import CompaniesPage from './pages/CompaniesPage.jsx';
 import NoteModal from './components/NoteModal.jsx';
 import MonitorModal from './components/MonitorModal.jsx';
 import DomainModal from './components/DomainModal.jsx';
@@ -21,6 +23,8 @@ import ServerModal from './components/ServerModal.jsx';
 import ProviderModal from './components/ProviderModal.jsx';
 import CategoryModal from './components/CategoryModal.jsx';
 import CredentialModal from './components/CredentialModal.jsx';
+import CustomerModal from './components/CustomerModal.jsx';
+import CompanyModal from './components/CompanyModal.jsx';
 import ConfirmModal from './components/ConfirmModal.jsx';
 import Toasts from './components/Toasts.jsx';
 import { api } from './lib/api.js';
@@ -80,6 +84,12 @@ const VIEW_META = {
     addType: 'credential',
     addLabel: 'Yeni Kayıt',
   },
+  customers: {
+    title: 'Müşteriler',
+    subtitle: 'müşteri iletişim bilgilerini tek yerden yönet',
+    addType: 'customer',
+    addLabel: 'Yeni Müşteri',
+  },
 };
 
 export default function App() {
@@ -88,6 +98,8 @@ export default function App() {
   const [inventoryTab, setInventoryTab] = useState('domains');
   // Notlar sayfasının aktif sekmesi (notes | categories)
   const [notesTab, setNotesTab] = useState('notes');
+  // Müşteriler sayfasının aktif sekmesi (customers | companies)
+  const [customersTab, setCustomersTab] = useState('customers');
   const [apiOnline, setApiOnline] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [checkingIds, setCheckingIds] = useState(() => new Set());
@@ -97,6 +109,8 @@ export default function App() {
   const [domainsList, setDomainsList] = useState(EMPTY_LIST);
   const [serversList, setServersList] = useState(EMPTY_LIST);
   const [providersList, setProvidersList] = useState(EMPTY_LIST);
+  const [customersList, setCustomersList] = useState(EMPTY_LIST);
+  const [companiesList, setCompaniesList] = useState(EMPTY_LIST);
   const [categoriesList, setCategoriesList] = useState(EMPTY_LIST);
   const [notesList, setNotesList] = useState(EMPTY_LIST);
   const [credentialsList, setCredentialsList] = useState(EMPTY_LIST);
@@ -109,6 +123,9 @@ export default function App() {
   // Şifreler sayfası: sekme + arama + kategori filtresi
   const [credentialsTab, setCredentialsTab] = useState('credentials');
   const [credentialsQuery, setCredentialsQuery] = useState('');
+
+  // Müşteriler sayfası: arama sorgusu
+  const [customersQuery, setCustomersQuery] = useState('');
   const [credentialsCategoryFilter, setCredentialsCategoryFilter] = useState(null);
 
   // Modallardaki bağlantı seçenekleri
@@ -118,6 +135,7 @@ export default function App() {
     providers: [],
     categories: [],
     credentialCategories: [],
+    companies: [],
   });
 
   // modal: { open, type: 'monitor'|'domain'|'server', item }
@@ -166,6 +184,11 @@ export default function App() {
     domains: { load: api.listDomains, set: setDomainsList },
     servers: { load: api.listServers, set: setServersList },
     providers: { load: api.listProviders, set: setProvidersList },
+    customers: {
+      load: (page, limit) => api.listCustomers(page, limit, { q: customersQuery }),
+      set: setCustomersList,
+    },
+    companies: { load: api.listCompanies, set: setCompaniesList },
     categories: { load: api.listCategories, set: setCategoriesList },
     notes: {
       load: (page, limit) => api.listNotes(page, limit, notesCategoryFilter),
@@ -181,6 +204,11 @@ export default function App() {
     },
     credentialCategories: { load: api.listCredentialCategories, set: setCredentialCategoriesList },
   };
+
+  // loadList useCallback ile memoize olduğundan kapanımı ilk render'da kalır;
+  // arama sorguları (ör. customersQuery) güncel haliyle erişilsin diye ref kullanılır
+  const loadersRef = useRef(LIST_LOADERS);
+  loadersRef.current = LIST_LOADERS;
 
   const loadOverview = useCallback(
     async ({ silent = false } = {}) => {
@@ -202,13 +230,13 @@ export default function App() {
     async (kind, page, limit, { silent = false } = {}) => {
       if (!silent) setRefreshing(true);
       try {
-        const res = await LIST_LOADERS[kind].load(page, limit);
+        const res = await loadersRef.current[kind].load(page, limit);
         // Silme sonrası sayfa boşaldıysa önceki sayfaya dön
         if (res.data.length === 0 && res.page > 1) {
           await loadList(kind, res.page - 1, limit, { silent });
           return;
         }
-        LIST_LOADERS[kind].set(res);
+        loadersRef.current[kind].set(res);
         setApiOnline(true);
       } catch {
         setApiOnline(false);
@@ -272,10 +300,21 @@ export default function App() {
           .then((r) => setRefOptions((p) => ({ ...p, credentialCategories: r.data })))
           .catch(() => {});
       }
+    } else if (view === 'customers') {
+      if (customersTab === 'companies') {
+        loadList('companies', 1, DEFAULT_LIMIT);
+      } else {
+        loadList('customers', 1, DEFAULT_LIMIT);
+        // müşteri modalundaki şirket seçim listesi
+        api
+          .listCompanies(1, 100)
+          .then((r) => setRefOptions((p) => ({ ...p, companies: r.data })))
+          .catch(() => {});
+      }
     } else {
       loadList(view, 1, DEFAULT_LIMIT);
     }
-  }, [view, integrationTab, inventoryTab, notesTab, credentialsTab, loadOverview, loadList, loadIntegration]);
+  }, [view, integrationTab, inventoryTab, notesTab, credentialsTab, customersTab, loadOverview, loadList, loadIntegration]);
 
   // Şifreler: arama kutusu / kategori filtresi değişince (kısa beklemeyle) yeniden yükle
   useEffect(() => {
@@ -286,6 +325,16 @@ export default function App() {
     return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [credentialsQuery, credentialsCategoryFilter]);
+
+  // Müşteriler: arama kutusu değişince (kısa beklemeyle) yeniden yükle
+  useEffect(() => {
+    if (view !== 'customers') return;
+    const timer = setTimeout(() => {
+      loadList('customers', 1, DEFAULT_LIMIT);
+    }, 350);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [customersQuery]);
 
   // Notlar sayfasında kategori filtresi değişince listeyi yeniden yükle
   useEffect(() => {
@@ -311,12 +360,16 @@ export default function App() {
               ? 'categories'
               : view === 'credentials' && credentialsTab === 'credentialCategories'
                 ? 'credentialCategories'
-                : view;
+                : view === 'customers' && customersTab === 'companies'
+                  ? 'companies'
+                  : view;
         const list = {
           monitors: monitorsList,
           domains: domainsList,
           servers: serversList,
           providers: providersList,
+          customers: customersList,
+          companies: companiesList,
           categories: categoriesList,
           notes: notesList,
           credentials: credentialsList,
@@ -349,7 +402,9 @@ export default function App() {
           ? 'categories'
           : view === 'credentials' && credentialsTab === 'credentialCategories'
             ? 'credentialCategories'
-            : view;
+            : view === 'customers' && customersTab === 'companies'
+              ? 'companies'
+              : view;
     const list = {
       monitors: monitorsList,
       domains: domainsList,
@@ -386,6 +441,9 @@ export default function App() {
       } else if (type === 'credential') {
         const categories = await api.listCredentialCategories(1, 100);
         setRefOptions((prev) => ({ ...prev, credentialCategories: categories.data }));
+      } else if (type === 'customer') {
+        const companies = await api.listCompanies(1, 100);
+        setRefOptions((prev) => ({ ...prev, companies: companies.data }));
       }
     } catch {
       // seçenekler yüklenemezse boş select ile devam
@@ -489,6 +547,8 @@ export default function App() {
       domain: { create: api.createDomain, update: api.updateDomain, label: 'Domain' },
       server: { create: api.createServer, update: api.updateServer, label: 'Sunucu' },
       provider: { create: api.createProvider, update: api.updateProvider, label: 'Sağlayıcı' },
+      customer: { create: api.createCustomer, update: api.updateCustomer, label: 'Müşteri' },
+      company: { create: api.createCompany, update: api.updateCompany, label: 'Şirket' },
       category: { create: api.createCategory, update: api.updateCategory, label: 'Kategori' },
       note: { create: api.createNote, update: api.updateNote, label: 'Not' },
       credential: { create: api.createCredential, update: api.updateCredential, label: 'Kayıt' },
@@ -553,6 +613,8 @@ export default function App() {
       domain: api.deleteDomain,
       server: api.deleteServer,
       provider: api.deleteProvider,
+      customer: api.deleteCustomer,
+      company: api.deleteCompany,
       category: api.deleteCategory,
       note: api.deleteNote,
       credential: api.deleteCredential,
@@ -592,7 +654,13 @@ export default function App() {
               addType: 'credentialCategory',
               addLabel: 'Yeni Kategori',
             }
-          : VIEW_META[view];
+          : view === 'customers' && customersTab === 'companies'
+            ? {
+                ...VIEW_META.customers,
+                addType: 'company',
+                addLabel: 'Yeni Şirket',
+              }
+            : VIEW_META[view];
 
   return (
     <div className="flex min-h-screen bg-zinc-950 text-zinc-100">
@@ -703,6 +771,44 @@ export default function App() {
               onDelete={(item) => setDeleteTarget({ type: 'provider', item })}
               onAdd={() => openAddModal('provider')}
             />
+          )}
+
+          {view === 'customers' && (
+            <div className="flex flex-col gap-5">
+              <TabBar
+                ariaLabel="Müşteriler sekmeleri"
+                active={customersTab}
+                onChange={setCustomersTab}
+                totals={{ customers: customersList.total, companies: companiesList.total }}
+                tabs={[
+                  { id: 'customers', label: 'Müşteriler', icon: UserRound },
+                  { id: 'companies', label: 'Şirketler', icon: Building2 },
+                ]}
+              />
+              {customersTab === 'customers' ? (
+                <CustomersPage
+                  list={customersList}
+                  loading={listLoading}
+                  query={customersQuery}
+                  onQueryChange={setCustomersQuery}
+                  onPageChange={(page) => loadList('customers', page, customersList.limit)}
+                  onLimitChange={(limit) => loadList('customers', 1, limit)}
+                  onEdit={(item) => openEditModal('customer', item)}
+                  onDelete={(item) => setDeleteTarget({ type: 'customer', item })}
+                  onAdd={() => openAddModal('customer')}
+                />
+              ) : (
+                <CompaniesPage
+                  list={companiesList}
+                  loading={listLoading}
+                  onPageChange={(page) => loadList('companies', page, companiesList.limit)}
+                  onLimitChange={(limit) => loadList('companies', 1, limit)}
+                  onEdit={(item) => openEditModal('company', item)}
+                  onDelete={(item) => setDeleteTarget({ type: 'company', item })}
+                  onAdd={() => openAddModal('company')}
+                />
+              )}
+            </div>
           )}
 
           {view === 'notes' && (
@@ -849,6 +955,25 @@ export default function App() {
       <ProviderModal
         open={modal.open && modal.type === 'provider'}
         provider={modal.item}
+        saving={saving}
+        error={formError}
+        onSave={handleSave}
+        onClose={() => setModal({ open: false, type: null, item: null })}
+      />
+
+      <CustomerModal
+        open={modal.open && modal.type === 'customer'}
+        customer={modal.item}
+        saving={saving}
+        error={formError}
+        companyOptions={refOptions.companies}
+        onSave={handleSave}
+        onClose={() => setModal({ open: false, type: null, item: null })}
+      />
+
+      <CompanyModal
+        open={modal.open && modal.type === 'company'}
+        company={modal.item}
         saving={saving}
         error={formError}
         onSave={handleSave}

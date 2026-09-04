@@ -14,6 +14,9 @@ dist/
 # Notlara yüklenen dosyalar
 server/uploads/
 
+# Veritabanı yedekleri (kişisel veri içerebilir — asla repoya girmez)
+server/backups/
+
 # Editör / OS dosyaları
 .DS_Store
 *.log
