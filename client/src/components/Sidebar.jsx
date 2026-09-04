@@ -63,7 +63,7 @@ export default function Sidebar({ view, onNavigate, apiOnline }) {
         </div>
         <div>
           <h1 className="text-[15px] font-bold leading-tight tracking-tight text-white">
-            Takip Paneli
+            TrackDeck
           </h1>
           <p className="text-[11px] font-medium text-zinc-500">
             kişisel yönetim merkezi

@@ -103,7 +103,7 @@ const PREVIEW_VARS = {
   responseTime: '742',
   days: '30',
   expiresAt: '15 Mar 2027',
-  repo: 'muhammet/kisisel-takip',
+  repo: 'muhammet/trackdeck',
   workflow: 'ci',
   runNumber: '128',
   branch: 'main',

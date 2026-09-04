@@ -60,7 +60,7 @@ export async function ghRequest(path, { token } = {}) {
   const headers = {
     Accept: 'application/vnd.github+json',
     'X-GitHub-Api-Version': '2022-11-28',
-    'User-Agent': 'kisisel-takip-panel',
+    'User-Agent': 'trackdeck-panel',
   };
   if (token) headers.Authorization = `Bearer ${token}`;
 
@@ -92,7 +92,7 @@ export async function ghCount(path, { token } = {}) {
   const headers = {
     Accept: 'application/vnd.github+json',
     'X-GitHub-Api-Version': '2022-11-28',
-    'User-Agent': 'kisisel-takip-panel',
+    'User-Agent': 'trackdeck-panel',
   };
   if (token) headers.Authorization = `Bearer ${token}`;
 

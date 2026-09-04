@@ -1,6 +1,9 @@
-# Kişisel Takip Paneli — geliştirme ortamı
+# TrackDeck — geliştirme ortamı
 # Kaynak kodu bind-mount edilir; kod değişiklikleri hot-reload ile yansır.
 # Başlat: docker compose up --build -d  /  Durdur: docker compose down
+
+# Proje adı sabitlenir: klasör adı değişse bile container/volume adları sabit kalır
+name: trackdeck
 
 services:
   mongo:

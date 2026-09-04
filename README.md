@@ -1,12 +1,12 @@
-# Kişisel Takip Paneli
+# TrackDeck
 
-Aktif sitelerinin uptime takibi + kişisel notlar için lokal yönetim paneli.
-Şimdilik login yok; MongoDB lokalde çalışır.
+Uptime takibi, envanter, GitHub repoları, müşteriler, notlar ve şifreler için
+kişisel yönetim paneli. Şimdilik login yok; MongoDB lokalde çalışır.
 
 ## Yapı
 
 ```
-kisisel-takip/
+trackdeck/
 ├── server/   → Express + MongoDB API (port 40010)
 └── client/   → React + Vite + Tailwind paneli (port 40011)
 ```
